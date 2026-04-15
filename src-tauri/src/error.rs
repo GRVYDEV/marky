@@ -17,9 +17,6 @@ pub enum AppError {
     #[error("invalid input: {0}")]
     Invalid(String),
 
-    #[error("watcher error: {0}")]
-    Watch(String),
-
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
