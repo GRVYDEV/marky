@@ -1,3 +1,5 @@
+@reference "./index.css";
+
 .markdown-body {
   @apply text-foreground leading-7;
   font-size: 15px;
@@ -20,8 +22,8 @@
   margin-bottom: 0.75rem;
   scroll-margin-top: 4rem;
 }
-.markdown-body h1 { font-size: 2rem; line-height: 1.2; border-bottom: 1px solid hsl(var(--border)); padding-bottom: 0.4em; }
-.markdown-body h2 { font-size: 1.5rem; line-height: 1.3; border-bottom: 1px solid hsl(var(--border)); padding-bottom: 0.3em; }
+.markdown-body h1 { font-size: 2rem; line-height: 1.2; border-bottom: 1px solid var(--border); padding-bottom: 0.4em; }
+.markdown-body h2 { font-size: 1.5rem; line-height: 1.3; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
 .markdown-body h3 { font-size: 1.25rem; }
 .markdown-body h4 { font-size: 1.05rem; }
 .markdown-body h5 { font-size: 0.95rem; @apply text-muted-foreground; }
@@ -49,19 +51,19 @@
 .markdown-body .task-list-item input[type="checkbox"] {
   margin-right: 0.5rem;
   vertical-align: middle;
-  accent-color: hsl(var(--primary));
+  accent-color: var(--primary);
 }
 
 .markdown-body blockquote {
   @apply text-muted-foreground;
-  border-left: 3px solid hsl(var(--border));
+  border-left: 3px solid var(--border);
   padding: 0.25rem 1rem;
   margin: 1rem 0;
 }
 
 .markdown-body hr {
   border: none;
-  border-top: 1px solid hsl(var(--border));
+  border-top: 1px solid var(--border);
   margin: 2rem 0;
 }
 
@@ -74,12 +76,12 @@
   overflow-x: auto;
 }
 .markdown-body th, .markdown-body td {
-  border: 1px solid hsl(var(--border));
+  border: 1px solid var(--border);
   padding: 0.5rem 0.75rem;
   text-align: left;
 }
 .markdown-body th { @apply bg-muted font-semibold; }
-.markdown-body tr:nth-child(2n) td { background: hsl(var(--muted) / 0.4); }
+.markdown-body tr:nth-child(2n) td { background: color-mix(in oklch, var(--muted) 40%, transparent); }
 
 .markdown-body code:not(pre code) {
   @apply bg-muted text-foreground rounded;
@@ -92,8 +94,8 @@
   position: relative;
   margin: 1rem 0;
   border-radius: 0.5rem;
-  background: hsl(var(--muted));
-  border: 1px solid hsl(var(--border));
+  background: var(--muted);
+  border: 1px solid var(--border);
   overflow: hidden;
 }
 .markdown-body pre > code,
@@ -120,21 +122,21 @@
   font-size: 0.72rem;
   padding: 0.2rem 0.55rem;
   border-radius: 0.35rem;
-  background: hsl(var(--background) / 0.75);
-  border: 1px solid hsl(var(--border));
-  color: hsl(var(--muted-foreground));
+  background: color-mix(in oklch, var(--background) 75%, transparent);
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
   cursor: pointer;
   opacity: 0;
   transition: opacity 120ms ease;
 }
 .markdown-body pre:hover .copy-code-btn { opacity: 1; }
-.markdown-body .copy-code-btn:hover { color: hsl(var(--foreground)); }
+.markdown-body .copy-code-btn:hover { color: var(--foreground); }
 
 .markdown-body img { max-width: 100%; border-radius: 0.4rem; }
 
 .markdown-body .mermaid-block {
-  background: hsl(var(--muted));
-  border: 1px solid hsl(var(--border));
+  background: var(--muted);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
   padding: 1rem;
   margin: 1rem 0;
@@ -144,21 +146,21 @@
 .markdown-body .mermaid-block svg { max-width: 100%; height: auto; }
 
 .markdown-body mark.doc-search-match {
-  background: hsl(var(--muted-foreground) / 0.35);
+  background: color-mix(in oklch, var(--muted-foreground) 35%, transparent);
   color: inherit;
   border-radius: 2px;
   padding: 0 1px;
 }
 .markdown-body mark.doc-search-match.doc-search-active {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  outline: 1px solid hsl(var(--primary));
+  background: var(--primary);
+  color: var(--primary-foreground);
+  outline: 1px solid var(--primary);
 }
 
 .markdown-body .footnotes {
   margin-top: 3rem;
   padding-top: 1rem;
-  border-top: 1px solid hsl(var(--border));
+  border-top: 1px solid var(--border);
   font-size: 0.9em;
   @apply text-muted-foreground;
 }

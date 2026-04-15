@@ -182,7 +182,7 @@ export function CommandPalette({
                   <div className="truncate font-medium">{r.relative_path.split("/").pop()}</div>
                   <div className="truncate text-xs text-muted-foreground">{r.relative_path}</div>
                 </div>
-                <Badge variant="muted" className="ml-2 shrink-0">{r.folder_name}</Badge>
+                <Badge variant="secondary" className="ml-2 shrink-0">{r.folder_name}</Badge>
               </CommandItem>
             ))}
           </CommandGroup>
