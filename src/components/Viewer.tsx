@@ -46,7 +46,7 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
         const lang = match?.[1];
         const text = code.textContent || "";
         try {
-          const highlighted = await highlightCode(text, lang);
+          const highlighted = await highlightCode(text, lang, resolved);
           if (cancelled) return;
           const pre = code.parentElement;
           if (!pre || !pre.isConnected) continue;

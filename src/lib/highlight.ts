@@ -40,21 +40,24 @@ export function getHighlighter(): Promise<Highlighter> {
   return promise;
 }
 
-export async function highlightCode(code: string, lang: string | undefined): Promise<string> {
+export async function highlightCode(
+  code: string,
+  lang: string | undefined,
+  theme: "light" | "dark" = "dark"
+): Promise<string> {
   const hl = await getHighlighter();
   const loaded = hl.getLoadedLanguages();
-  let resolved = lang && loaded.includes(lang as BundledLanguage) ? lang : "";
-  if (lang && !resolved) {
+  let resolvedLang = lang && loaded.includes(lang as BundledLanguage) ? lang : "";
+  if (lang && !resolvedLang) {
     try {
       await hl.loadLanguage(lang as BundledLanguage);
-      resolved = lang;
+      resolvedLang = lang;
     } catch {
-      resolved = "";
+      resolvedLang = "";
     }
   }
   return hl.codeToHtml(code, {
-    lang: resolved || "text",
-    themes: { light: "github-light", dark: "github-dark" },
-    defaultColor: false,
+    lang: resolvedLang || "text",
+    theme: theme === "dark" ? "github-dark" : "github-light",
   });
 }

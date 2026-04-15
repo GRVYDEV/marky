@@ -108,24 +108,11 @@
   overflow-x: auto;
   background: transparent;
 }
+/* Shiki paints inline color/background on the <pre> and on every token
+   <span> based on the theme passed at render time, so no extra mapping
+   needed here. We just keep padding consistent with our own pre rule. */
 .markdown-body pre.shiki { padding: 1rem 1.1rem; }
 .markdown-body pre.shiki code { background: transparent; padding: 0; }
-
-/* Shiki dual-theme: defaultColor=false emits CSS vars only, so we map them.
-   Light mode by default; .dark switches to the dark variables. */
-.markdown-body pre.shiki,
-.markdown-body pre.shiki span {
-  color: var(--shiki-light);
-  background-color: var(--shiki-light-bg);
-}
-.dark .markdown-body pre.shiki,
-.dark .markdown-body pre.shiki span {
-  color: var(--shiki-dark);
-  background-color: var(--shiki-dark-bg);
-}
-/* Spans should not paint their own bg — only the outer pre carries it. */
-.markdown-body pre.shiki span { background-color: transparent; }
-.dark .markdown-body pre.shiki span { background-color: transparent; }
 
 .markdown-body .copy-code-btn {
   position: absolute;
