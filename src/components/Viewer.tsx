@@ -21,6 +21,14 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
   const { resolved } = useTheme();
   const [html, setHtml] = React.useState("");
 
+  // Keep onRendered fresh without making it a dep — otherwise every parent
+  // re-render produces a new fn ref, retriggers the highlight effect, and the
+  // resulting outerHTML swap visibly flickers code blocks back to plain text.
+  const onRenderedRef = React.useRef(onRendered);
+  React.useEffect(() => {
+    onRenderedRef.current = onRendered;
+  }, [onRendered]);
+
   React.useEffect(() => {
     setHtml(renderMarkdown(source));
   }, [source]);
@@ -49,13 +57,15 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
       if (cancelled) return;
       attachCopyButtons(root as HTMLElement);
       await renderMermaidBlocks(root as HTMLElement, resolved);
-      if (!cancelled) onRendered?.();
+      if (!cancelled) onRenderedRef.current?.();
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [html, resolved, ref, onRendered]);
+    // intentionally omit `ref` and `onRendered`: ref is stable, onRendered is read via ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [html, resolved]);
 
   React.useEffect(() => {
     const el = scrollerRef.current;
