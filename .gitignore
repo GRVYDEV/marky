@@ -32,6 +32,9 @@ src-tauri/Cargo.lock.bak
 coverage
 .vitest
 
+# TS build cache
+*.tsbuildinfo
+
 # OS
 Thumbs.db
 
