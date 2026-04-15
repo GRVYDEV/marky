@@ -180,7 +180,7 @@ function AppShell() {
 
   return (
     <div className="flex h-full">
-      <div ref={sidebarRef}>
+      <div ref={sidebarRef} className="flex h-full min-h-0">
         <FolderSidebar
           activePath={activeTab?.filePath}
           onOpenFile={openFile}

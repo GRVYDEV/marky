@@ -50,9 +50,6 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
           if (cancelled) return;
           const pre = code.parentElement;
           if (!pre || !pre.isConnected) continue;
-          // Parse shiki's <pre>...</pre> output and swap in place. outerHTML
-          // assignment can have surprising effects on adjacent siblings —
-          // replaceWith with a parsed node is more predictable.
           const tpl = document.createElement("template");
           tpl.innerHTML = highlighted.trim();
           const replacement = tpl.content.firstElementChild;
@@ -84,9 +81,16 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
     return () => el.removeEventListener("scroll", onScroll);
   }, [filePath, html]);
 
+  // Memoize the inner-html object so its reference is stable across renders.
+  // If we passed a fresh { __html: html } object every render, React would
+  // re-apply innerHTML on every re-render (e.g. when the parent Pane bumps
+  // contentNonce after highlighting finishes), wiping the shiki spans we just
+  // injected and restoring the raw markdown-it pre.
+  const dangerousHtml = React.useMemo(() => ({ __html: html }), [html]);
+
   return (
     <div ref={scrollerRef} className="h-full w-full overflow-auto">
-      <article ref={ref} className="markdown-body" dangerouslySetInnerHTML={{ __html: html }} />
+      <article ref={ref} className="markdown-body" dangerouslySetInnerHTML={dangerousHtml} />
     </div>
   );
 }
