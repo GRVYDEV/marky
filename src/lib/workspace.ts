@@ -192,33 +192,16 @@ export function reduce(state: WorkspaceState, action: Action): WorkspaceState {
         // Already split; only update direction.
         return { ...state, split: action.direction };
       }
-      const sourcePane = state.panes.find((p) => p.id === state.activePaneId)!;
-      const sourceTabId = sourcePane.activeTabId;
-      const sourceTab = sourceTabId ? state.tabs[sourceTabId] : undefined;
-
       const newPaneId = `p${state.nextPaneId}`;
-      let newTabs = state.tabs;
-      let newTabIds: string[] = [];
-      let activeId: string | null = null;
-      let nextTabIdCount = state.nextTabId;
-
-      if (sourceTab) {
-        // Clone the tab into the new pane so both panes can scroll independently.
-        const clonedId = `t${nextTabIdCount}`;
-        nextTabIdCount += 1;
-        newTabs = { ...newTabs, [clonedId]: { ...sourceTab, id: clonedId } };
-        newTabIds = [clonedId];
-        activeId = clonedId;
-      }
-
+      // Start the new pane empty. Cloning the active tab caused two Viewers
+      // to highlight the same source concurrently and step on each other's
+      // pre.outerHTML swaps — that locked the renderer up.
       return {
         ...state,
-        tabs: newTabs,
-        panes: [...state.panes, { id: newPaneId, tabIds: newTabIds, activeTabId: activeId }],
+        panes: [...state.panes, { id: newPaneId, tabIds: [], activeTabId: null }],
         activePaneId: newPaneId,
         split: action.direction,
         nextPaneId: state.nextPaneId + 1,
-        nextTabId: nextTabIdCount,
       };
     }
 

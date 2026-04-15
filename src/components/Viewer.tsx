@@ -49,7 +49,14 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
           const highlighted = await highlightCode(text, lang);
           if (cancelled) return;
           const pre = code.parentElement;
-          if (pre) pre.outerHTML = highlighted;
+          if (!pre || !pre.isConnected) continue;
+          // Parse shiki's <pre>...</pre> output and swap in place. outerHTML
+          // assignment can have surprising effects on adjacent siblings —
+          // replaceWith with a parsed node is more predictable.
+          const tpl = document.createElement("template");
+          tpl.innerHTML = highlighted.trim();
+          const replacement = tpl.content.firstElementChild;
+          if (replacement) pre.replaceWith(replacement);
         } catch {
           // leave plain on failure
         }

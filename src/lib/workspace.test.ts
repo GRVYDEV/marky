@@ -39,7 +39,7 @@ describe("workspace reducer", () => {
     expect(getActiveTab(s)?.filePath).toBe("/b.md");
   });
 
-  it("SPLIT clones the active tab into a new pane and switches focus", () => {
+  it("SPLIT creates an empty new pane and switches focus to it", () => {
     let s = createInitialState("w");
     s = open(s, "/a.md");
     s = reduce(s, { type: "SPLIT", direction: "vertical" });
@@ -47,11 +47,11 @@ describe("workspace reducer", () => {
     expect(s.split).toBe("vertical");
     const newPane = s.panes[1];
     expect(s.activePaneId).toBe(newPane.id);
-    const clonedTab = s.tabs[newPane.activeTabId!];
-    expect(clonedTab.filePath).toBe("/a.md");
+    expect(newPane.tabIds).toEqual([]);
+    expect(newPane.activeTabId).toBeNull();
   });
 
-  it("OPEN_FILE goes into the active pane after split", () => {
+  it("OPEN_FILE goes into the active (new) pane after split", () => {
     let s = createInitialState("w");
     s = open(s, "/a.md");
     s = reduce(s, { type: "SPLIT", direction: "vertical" });
@@ -75,6 +75,7 @@ describe("workspace reducer", () => {
     let s = createInitialState("w");
     s = open(s, "/a.md");
     s = reduce(s, { type: "SPLIT", direction: "vertical" });
+    s = open(s, "/c.md"); // populates the empty new pane
     const newPane = s.panes[1];
     const onlyTab = newPane.activeTabId!;
     s = reduce(s, { type: "CLOSE_TAB", tabId: onlyTab, paneId: newPane.id });
