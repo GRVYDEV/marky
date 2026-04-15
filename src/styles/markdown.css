@@ -143,6 +143,18 @@
 }
 .markdown-body .mermaid-block svg { max-width: 100%; height: auto; }
 
+.markdown-body mark.doc-search-match {
+  background: hsl(var(--muted-foreground) / 0.35);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.markdown-body mark.doc-search-match.doc-search-active {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  outline: 1px solid hsl(var(--primary));
+}
+
 .markdown-body .footnotes {
   margin-top: 3rem;
   padding-top: 1rem;

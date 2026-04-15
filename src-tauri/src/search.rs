@@ -1,4 +1,4 @@
-use crate::vault::IndexedFile;
+use crate::folder::IndexedFile;
 use nucleo::pattern::{CaseMatching, Normalization, Pattern};
 use nucleo::{Config, Matcher};
 use serde::Serialize;
@@ -29,7 +29,7 @@ pub fn search(files: &[IndexedFile], query: &str, limit: usize) -> Vec<SearchRes
     let mut scored: Vec<SearchResult> = files
         .iter()
         .filter_map(|f| {
-            let haystack = format!("{}/{}", f.vault_name, f.relative_path);
+            let haystack = format!("{}/{}", f.folder_name, f.relative_path);
             let mut buf = Vec::new();
             let utf32 = nucleo::Utf32Str::new(&haystack, &mut buf);
             pattern.score(utf32, &mut matcher).map(|score| SearchResult {
@@ -48,10 +48,10 @@ pub fn search(files: &[IndexedFile], query: &str, limit: usize) -> Vec<SearchRes
 mod tests {
     use super::*;
 
-    fn file(vault: &str, rel: &str) -> IndexedFile {
+    fn file(folder: &str, rel: &str) -> IndexedFile {
         IndexedFile {
-            vault_id: "v".into(),
-            vault_name: vault.into(),
+            folder_id: "f".into(),
+            folder_name: folder.into(),
             absolute_path: format!("/root/{rel}"),
             relative_path: rel.into(),
         }

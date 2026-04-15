@@ -5,9 +5,9 @@ A fast, good-looking markdown viewer built in Tauri, launchable via `marky FILEN
 ## Goals
 
 - Open `.md` files with great rendering: GFM tables, task lists, syntax-highlighted code, mermaid diagrams, KaTeX math.
-- CLI-first UX: `marky README.md` opens a window with that file. `marky ./docs/` opens a folder as a **vault**.
-- **Vaults**: add folders as persistent workspaces (Obsidian-style). Vaults show in a sidebar and are always available on launch.
-- **Cmd+K command palette** for fuzzy-finding any file across all open vaults.
+- CLI-first UX: `marky README.md` opens a window with that file. `marky ./docs/` opens a folder as a **folder**.
+- **Folders**: add folders as persistent workspaces (Obsidian-style). Folders show in a sidebar and are always available on launch.
+- **Cmd+K command palette** for fuzzy-finding any file across all open folders.
 - Feels native on macOS. Small binary. Fast startup.
 - Live reload when the file changes on disk (useful when Claude is editing plans).
 
@@ -24,7 +24,7 @@ A fast, good-looking markdown viewer built in Tauri, launchable via `marky FILEN
 | UI components | **shadcn/ui** (Radix + Tailwind) | Accessible primitives for dialogs, menus, tooltips, command palette |
 | Styling | **Tailwind CSS** + custom markdown theme | Utility classes + a GitHub-like prose stylesheet |
 | File watching | Rust `notify` crate | Cross-platform, efficient |
-| Fuzzy search | **nucleo** (Rust) via Tauri command | Fast fuzzy matching over vault file lists; same algo as Helix |
+| Fuzzy search | **nucleo** (Rust) via Tauri command | Fast fuzzy matching over folder file lists; same algo as Helix |
 | Command palette UI | **cmdk** (shadcn `<Command />`) | Accessible, styleable, composes with shadcn Dialog |
 
 ## Project Structure
@@ -36,9 +36,9 @@ marky/
 │   │   ├── main.rs            # entrypoint, window setup
 │   │   ├── cli.rs             # argv parsing, file vs. folder resolution
 │   │   ├── fs.rs              # read + watch markdown files
-│   │   ├── vault.rs           # vault indexing, file tree walk, watcher per vault
+│   │   ├── folder.rs           # folder indexing, file tree walk, watcher per folder
 │   │   ├── search.rs          # nucleo-based fuzzy matcher for Cmd+K
-│   │   ├── settings.rs        # persisted settings (vaults list, theme, recents)
+│   │   ├── settings.rs        # persisted settings (folders list, theme, recents)
 │   │   └── commands.rs        # #[tauri::command] handlers
 │   ├── Cargo.toml
 │   ├── tauri.conf.json
@@ -53,14 +53,14 @@ marky/
 │   │   ├── CodeBlock.tsx      # shiki + copy button
 │   │   ├── Mermaid.tsx        # renders mermaid blocks
 │   │   ├── CommandPalette.tsx # Cmd+K: fuzzy file search + actions
-│   │   ├── VaultSidebar.tsx   # list of vaults + collapsible file tree
+│   │   ├── FolderSidebar.tsx   # list of folders + collapsible file tree
 │   │   ├── FileTree.tsx       # recursive tree node component
 │   │   └── TableOfContents.tsx
 │   ├── lib/
 │   │   ├── markdown.ts        # markdown-it configured instance
 │   │   ├── highlight.ts       # shiki singleton
 │   │   ├── tauri.ts           # typed wrappers over invoke()
-│   │   ├── vault.ts           # vault state hooks, file tree helpers
+│   │   ├── folder.ts           # folder state hooks, file tree helpers
 │   │   └── theme.ts           # light/dark/system
 │   └── styles/
 │       ├── index.css          # tailwind + base
@@ -82,9 +82,9 @@ The Tauri binary accepts a path as its first positional argument — file **or**
 - Read `std::env::args()` in `main.rs` before building the Tauri app.
 - Resolve to an absolute path, `stat` it:
   - File → store as "initial file", open viewer on that file.
-  - Directory → register it as a vault (if not already), open sidebar focused on it, show an empty viewer until the user picks a file.
-  - No arg → open with the last session (vaults restored, last-viewed file selected).
-- Expose `get_initial_target()` returning `{ kind: "file" | "vault" | "none", path }` for the frontend to branch on.
+  - Directory → register it as a folder (if not already), open sidebar focused on it, show an empty viewer until the user picks a file.
+  - No arg → open with the last session (folders restored, last-viewed file selected).
+- Expose `get_initial_target()` returning `{ kind: "file" | "folder" | "none", path }` for the frontend to branch on.
 
 **Shell integration:**
 - macOS: after `cargo tauri build`, symlink the inner binary to `~/.local/bin/marky` (or `/usr/local/bin/marky`).
@@ -94,14 +94,14 @@ The Tauri binary accepts a path as its first positional argument — file **or**
 **Single-instance behavior:**
 - Use `tauri-plugin-single-instance` so `marky other.md` in a second invocation focuses the existing window and loads the new file (or opens a new tab later).
 
-## Vaults (Obsidian-style workspaces)
+## Folders (Obsidian-style workspaces)
 
-A **vault** is a persisted reference to a folder on disk. Vaults are listed in the left sidebar and always restored on launch.
+A **folder** is a persisted reference to a folder on disk. Folders are listed in the left sidebar and always restored on launch.
 
 **Data model (persisted in `settings.json`):**
 ```json
 {
-  "vaults": [
+  "folders": [
     { "id": "uuid", "name": "plans", "path": "/Users/me/plans", "addedAt": "..." }
   ],
   "lastOpenedFile": "/Users/me/plans/2026-04-release.md",
@@ -110,38 +110,38 @@ A **vault** is a persisted reference to a folder on disk. Vaults are listed in t
 ```
 
 **Behavior:**
-- Add vault: `Cmd+Shift+O` or sidebar "+" → native folder picker → append to settings.
-- Remove vault: right-click → "Remove from Marky" (does NOT delete the folder).
-- Each vault has its own `notify` watcher; add/remove/rename events update the in-memory tree.
-- File tree shows `.md`, `.markdown`, `.mdx` by default. A per-vault filter can expand this. Hidden files (`.`-prefix), `node_modules`, `.git`, `target`, and `dist` are excluded by default via a small built-in ignore list.
-- Vault file lists are indexed in memory for Cmd+K. Re-index on watcher events (debounced).
+- Add folder: `Cmd+Shift+O` or sidebar "+" → native folder picker → append to settings.
+- Remove folder: right-click → "Remove from Marky" (does NOT delete the folder).
+- Each folder has its own `notify` watcher; add/remove/rename events update the in-memory tree.
+- File tree shows `.md`, `.markdown`, `.mdx` by default. A per-folder filter can expand this. Hidden files (`.`-prefix), `node_modules`, `.git`, `target`, and `dist` are excluded by default via a small built-in ignore list.
+- Folder file lists are indexed in memory for Cmd+K. Re-index on watcher events (debounced).
 - Clicking a file in the tree opens it in the viewer. Folder expansion state is session-local (not persisted — keeps it simple).
 
 **Rust commands (`commands.rs`):**
-- `list_vaults() -> Vec<Vault>`
-- `add_vault(path: String) -> Vault`
-- `remove_vault(id: String)`
-- `read_vault_tree(id: String) -> TreeNode` (lazy: children only on demand for deep trees, OR eager walk if fast enough — start eager, optimize if needed)
-- `subscribe_vault_events(id: String)` → emits events on the `vault://{id}/changed` channel
+- `list_folders() -> Vec<Folder>`
+- `add_folder(path: String) -> Folder`
+- `remove_folder(id: String)`
+- `read_folder_tree(id: String) -> TreeNode` (lazy: children only on demand for deep trees, OR eager walk if fast enough — start eager, optimize if needed)
+- `subscribe_folder_events(id: String)` → emits events on the `folder://{id}/changed` channel
 
 ## Command Palette (Cmd+K)
 
 Opens a shadcn `<CommandDialog />` anchored center-top.
 
 **Sources (in priority order):**
-1. **Actions** — "Open File…", "Add Vault…", "Toggle Theme", "Toggle Sidebar", "Copy Path", etc.
-2. **Files** — every `.md` file across all vaults, fuzzy-matched by relative path.
+1. **Actions** — "Open File…", "Add Folder…", "Toggle Theme", "Toggle Sidebar", "Copy Path", etc.
+2. **Files** — every `.md` file across all folders, fuzzy-matched by relative path.
 3. **Headings** — (Phase 3) headings inside the currently open file, for jumping.
 
 **Search implementation:**
-- Rust command `search_vault_files(query: String, limit: u32) -> Vec<Match>`
-- Backed by `nucleo` (same matcher as Helix); matches on `vault_name/relative/path.md`.
-- Index is rebuilt on vault watcher events; kept in memory as `Vec<(vault_id, relative_path)>`.
+- Rust command `search_folder_files(query: String, limit: u32) -> Vec<Match>`
+- Backed by `nucleo` (same matcher as Helix); matches on `folder_name/relative/path.md`.
+- Index is rebuilt on folder watcher events; kept in memory as `Vec<(folder_id, relative_path)>`.
 - For N < ~50k files this is effectively instant; re-invoke on every keystroke from the frontend.
 
 **UI:**
 - `Cmd+K` toggles. `Esc` closes. `↑/↓` navigates. `Enter` opens.
-- Result rows show: file name (bold), relative path (muted), vault name (badge on the right).
+- Result rows show: file name (bold), relative path (muted), folder name (badge on the right).
 - First render shows Actions + most recent files when query is empty.
 
 ## Feature Phases
@@ -160,15 +160,15 @@ Opens a shadcn `<CommandDialog />` anchored center-top.
 - [ ] `Cmd+O` open file dialog
 - [ ] Install script to put `marky` on PATH
 
-### Phase 1.5 — Vaults & Cmd+K (high priority, right after MVP)
+### Phase 1.5 — Folders & Cmd+K (high priority, right after MVP)
 - [ ] Settings persistence (`settings.rs` + `app_data_dir/settings.json`)
-- [ ] `add_vault` / `list_vaults` / `remove_vault` commands
-- [ ] Eager vault tree walk with ignore list
-- [ ] `VaultSidebar` + `FileTree` components (shadcn ScrollArea + Collapsible)
-- [ ] Per-vault `notify` watcher → emit events → frontend updates tree
-- [ ] CLI: `marky ./docs/` registers/opens the folder as a vault
-- [ ] Restore vaults + last-opened file on launch
-- [ ] `search_vault_files` command backed by `nucleo`
+- [ ] `add_folder` / `list_folders` / `remove_folder` commands
+- [ ] Eager folder tree walk with ignore list
+- [ ] `FolderSidebar` + `FileTree` components (shadcn ScrollArea + Collapsible)
+- [ ] Per-folder `notify` watcher → emit events → frontend updates tree
+- [ ] CLI: `marky ./docs/` registers/opens the folder as a folder
+- [ ] Restore folders + last-opened file on launch
+- [ ] `search_folder_files` command backed by `nucleo`
 - [ ] `CommandPalette` component (shadcn `<CommandDialog />`) with Actions + Files sources
 - [ ] Global `Cmd+K` hotkey
 
@@ -191,8 +191,8 @@ Opens a shadcn `<CommandDialog />` anchored center-top.
 - [ ] Footnotes + definition lists plugin
 - [ ] Mac menu bar polish (native menus)
 - [ ] Cmd+K: jump to heading within current file
-- [ ] Cmd+K: full-text content search across vaults (ripgrep-style, via `grep` crate or shelling to `rg`)
-- [ ] Wikilinks (`[[Other Note]]`) resolved against the current vault
+- [ ] Cmd+K: full-text content search across folders (ripgrep-style, via `grep` crate or shelling to `rg`)
+- [ ] Wikilinks (`[[Other Note]]`) resolved against the current folder
 
 ## Build & Install Flow
 
@@ -214,8 +214,8 @@ pnpm tauri build
 - **Watch granularity?** Debounce file-change events at ~100ms so editor save storms don't flicker.
 - **Should the rendered HTML be sanitized?** Yes — use DOMPurify on the markdown-it output before injecting. Claude plans can contain arbitrary HTML.
 - **Where to store settings (theme, recent files)?** Tauri's `app_data_dir()` + a small `settings.json`.
-- **Vault tree: eager vs. lazy walk?** Start eager (simple, fast enough for <10k files). Switch to lazy per-folder reads if large vaults lag.
-- **Should vaults store any files themselves (like Obsidian's `.obsidian/`)?** No — keep vaults as pure pointers. All state lives in the app's own settings dir. Folders can be opened by multiple tools without contamination.
+- **Folder tree: eager vs. lazy walk?** Start eager (simple, fast enough for <10k files). Switch to lazy per-folder reads if large folders lag.
+- **Should folders store any files themselves (like Obsidian's `.obsidian/`)?** No — keep folders as pure pointers. All state lives in the app's own settings dir. Folders can be opened by multiple tools without contamination.
 
 ## Success Criteria
 

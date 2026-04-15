@@ -1,5 +1,7 @@
 use crate::registry::SharedRegistry;
-use notify_debouncer_full::{new_debouncer, notify::RecursiveMode, DebounceEventResult, Debouncer, RecommendedCache};
+use notify_debouncer_full::{
+    new_debouncer, notify::RecursiveMode, DebounceEventResult, Debouncer, RecommendedCache,
+};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -9,17 +11,17 @@ pub struct WatcherHandle {
     _debouncer: Debouncer<notify::RecommendedWatcher, RecommendedCache>,
 }
 
-/// Spin up a debounced watcher per vault. On any change, re-index the vault
-/// and emit `vault://changed` with the vault id so the frontend can refresh.
-pub fn watch_vault(
+/// Spin up a debounced watcher per folder. On any change, re-index the folder
+/// and emit `folder://changed` with the folder id so the frontend can refresh.
+pub fn watch_folder(
     app: AppHandle,
     registry: SharedRegistry,
-    vault_id: String,
+    folder_id: String,
     root: PathBuf,
 ) -> anyhow::Result<WatcherHandle> {
     let app_for_cb = app.clone();
     let reg_for_cb = registry.clone();
-    let id_for_cb = vault_id.clone();
+    let id_for_cb = folder_id.clone();
 
     let mut debouncer = new_debouncer(
         Duration::from_millis(200),
@@ -28,16 +30,18 @@ pub fn watch_vault(
             if res.is_err() {
                 return;
             }
-            reg_for_cb.refresh_vault(&id_for_cb);
-            let _ = app_for_cb.emit("vault://changed", &id_for_cb);
+            reg_for_cb.refresh_folder(&id_for_cb);
+            let _ = app_for_cb.emit("folder://changed", &id_for_cb);
         },
     )?;
 
     debouncer.watch(&root, RecursiveMode::Recursive)?;
-    Ok(WatcherHandle { _debouncer: debouncer })
+    Ok(WatcherHandle {
+        _debouncer: debouncer,
+    })
 }
 
-/// Lifetime holder for active watchers, keyed by vault id.
+/// Lifetime holder for active watchers, keyed by folder id.
 #[derive(Default)]
 pub struct Watchers {
     inner: parking_lot::Mutex<std::collections::HashMap<String, WatcherHandle>>,

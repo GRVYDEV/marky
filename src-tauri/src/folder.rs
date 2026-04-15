@@ -28,8 +28,8 @@ pub struct TreeNode {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IndexedFile {
-    pub vault_id: String,
-    pub vault_name: String,
+    pub folder_id: String,
+    pub folder_name: String,
     pub absolute_path: String,
     pub relative_path: String,
 }
@@ -45,7 +45,7 @@ fn is_ignored_dirname(name: &str) -> bool {
     name.starts_with('.') || DEFAULT_IGNORES.contains(&name)
 }
 
-/// Build the tree of markdown files for a vault root.
+/// Build the tree of markdown files for a folder root.
 /// Empty directories (no markdown descendants) are pruned.
 pub fn build_tree(root: &Path) -> AppResult<TreeNode> {
     let walker = WalkBuilder::new(root)
@@ -71,7 +71,7 @@ pub fn build_tree(root: &Path) -> AppResult<TreeNode> {
     let root_name = root
         .file_name()
         .and_then(|n| n.to_str())
-        .unwrap_or("vault")
+        .unwrap_or("folder")
         .to_string();
 
     let mut root_node = TreeNode {
@@ -145,25 +145,25 @@ fn sort_tree(node: &mut TreeNode) {
 
 /// Flatten the tree into IndexedFile entries (markdown files only).
 pub fn flatten_files(
-    vault_id: &str,
-    vault_name: &str,
-    vault_root: &Path,
+    folder_id: &str,
+    folder_name: &str,
+    folder_root: &Path,
     node: &TreeNode,
     out: &mut Vec<IndexedFile>,
 ) {
     if node.is_dir {
         for c in &node.children {
-            flatten_files(vault_id, vault_name, vault_root, c, out);
+            flatten_files(folder_id, folder_name, folder_root, c, out);
         }
     } else {
         let abs = PathBuf::from(&node.path);
         let rel = abs
-            .strip_prefix(vault_root)
+            .strip_prefix(folder_root)
             .map(|p| p.to_string_lossy().into_owned())
             .unwrap_or_else(|_| node.name.clone());
         out.push(IndexedFile {
-            vault_id: vault_id.to_string(),
-            vault_name: vault_name.to_string(),
+            folder_id: folder_id.to_string(),
+            folder_name: folder_name.to_string(),
             absolute_path: node.path.clone(),
             relative_path: rel,
         });
@@ -200,7 +200,7 @@ mod tests {
         touch(&dir.path().join("sub/c.md"));
         let tree = build_tree(dir.path()).unwrap();
         let mut files = Vec::new();
-        flatten_files("v", "vault", dir.path(), &tree, &mut files);
+        flatten_files("v", "folder", dir.path(), &tree, &mut files);
         let names: Vec<_> = files.iter().map(|f| f.relative_path.clone()).collect();
         assert!(names.iter().any(|n| n.ends_with("a.md")));
         assert!(names.iter().any(|n| n.ends_with("c.md")));
@@ -216,7 +216,7 @@ mod tests {
         touch(&dir.path().join(".hidden/z.md"));
         let tree = build_tree(dir.path()).unwrap();
         let mut files = Vec::new();
-        flatten_files("v", "vault", dir.path(), &tree, &mut files);
+        flatten_files("v", "folder", dir.path(), &tree, &mut files);
         let rels: Vec<_> = files.iter().map(|f| f.relative_path.clone()).collect();
         assert_eq!(rels, vec!["ok.md".to_string()]);
     }
@@ -239,10 +239,10 @@ mod tests {
         touch(&dir.path().join("docs/guide/intro.md"));
         let tree = build_tree(dir.path()).unwrap();
         let mut files = Vec::new();
-        flatten_files("v1", "myvault", dir.path(), &tree, &mut files);
+        flatten_files("f1", "myfolder", dir.path(), &tree, &mut files);
         assert_eq!(files.len(), 1);
-        assert_eq!(files[0].vault_id, "v1");
-        assert_eq!(files[0].vault_name, "myvault");
+        assert_eq!(files[0].folder_id, "f1");
+        assert_eq!(files[0].folder_name, "myfolder");
         assert_eq!(
             files[0].relative_path.replace('\\', "/"),
             "docs/guide/intro.md"

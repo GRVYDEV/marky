@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Vault {
+pub struct Folder {
     pub id: String,
     pub name: String,
     pub path: String,
@@ -13,8 +13,10 @@ pub struct Vault {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Settings {
-    #[serde(default)]
-    pub vaults: Vec<Vault>,
+    /// Saved folder workspaces. `vaults` is accepted as a legacy alias so
+    /// settings written by older builds still load.
+    #[serde(default, alias = "vaults")]
+    pub folders: Vec<Folder>,
     #[serde(default)]
     pub last_opened_file: Option<String>,
     #[serde(default)]
@@ -53,15 +55,15 @@ impl Settings {
         self.last_opened_file = Some(path);
     }
 
-    pub fn add_vault(&mut self, vault: Vault) {
-        if self.vaults.iter().any(|v| v.path == vault.path) {
+    pub fn add_folder(&mut self, folder: Folder) {
+        if self.folders.iter().any(|v| v.path == folder.path) {
             return;
         }
-        self.vaults.push(vault);
+        self.folders.push(folder);
     }
 
-    pub fn remove_vault(&mut self, id: &str) {
-        self.vaults.retain(|v| v.id != id);
+    pub fn remove_folder(&mut self, id: &str) {
+        self.folders.retain(|v| v.id != id);
     }
 }
 
@@ -76,8 +78,8 @@ mod tests {
     use super::*;
     use tempfile::tempdir;
 
-    fn vault(id: &str, path: &str) -> Vault {
-        Vault {
+    fn folder(id: &str, path: &str) -> Folder {
+        Folder {
             id: id.into(),
             name: "x".into(),
             path: path.into(),
@@ -91,7 +93,7 @@ mod tests {
         let s = Settings::default();
         s.save(dir.path()).unwrap();
         let loaded = Settings::load(dir.path()).unwrap();
-        assert!(loaded.vaults.is_empty());
+        assert!(loaded.folders.is_empty());
         assert!(loaded.recent_files.is_empty());
     }
 
@@ -99,32 +101,32 @@ mod tests {
     fn round_trip_with_data() {
         let dir = tempdir().unwrap();
         let mut s = Settings::default();
-        s.add_vault(vault("v1", "/tmp/a"));
+        s.add_folder(folder("f1", "/tmp/a"));
         s.push_recent("/tmp/a/file.md".into());
         s.save(dir.path()).unwrap();
         let loaded = Settings::load(dir.path()).unwrap();
-        assert_eq!(loaded.vaults.len(), 1);
+        assert_eq!(loaded.folders.len(), 1);
         assert_eq!(loaded.recent_files, vec!["/tmp/a/file.md"]);
         assert_eq!(loaded.last_opened_file.as_deref(), Some("/tmp/a/file.md"));
     }
 
     #[test]
-    fn add_vault_dedups_by_path() {
+    fn add_folder_dedups_by_path() {
         let mut s = Settings::default();
-        s.add_vault(vault("v1", "/tmp/a"));
-        s.add_vault(vault("v2", "/tmp/a"));
-        assert_eq!(s.vaults.len(), 1);
-        assert_eq!(s.vaults[0].id, "v1");
+        s.add_folder(folder("f1", "/tmp/a"));
+        s.add_folder(folder("f2", "/tmp/a"));
+        assert_eq!(s.folders.len(), 1);
+        assert_eq!(s.folders[0].id, "f1");
     }
 
     #[test]
-    fn remove_vault_works() {
+    fn remove_folder_works() {
         let mut s = Settings::default();
-        s.add_vault(vault("v1", "/tmp/a"));
-        s.add_vault(vault("v2", "/tmp/b"));
-        s.remove_vault("v1");
-        assert_eq!(s.vaults.len(), 1);
-        assert_eq!(s.vaults[0].id, "v2");
+        s.add_folder(folder("f1", "/tmp/a"));
+        s.add_folder(folder("f2", "/tmp/b"));
+        s.remove_folder("f1");
+        assert_eq!(s.folders.len(), 1);
+        assert_eq!(s.folders[0].id, "f2");
     }
 
     #[test]
@@ -146,7 +148,7 @@ mod tests {
     fn load_missing_file_is_default() {
         let dir = tempdir().unwrap();
         let s = Settings::load(dir.path()).unwrap();
-        assert!(s.vaults.is_empty());
+        assert!(s.folders.is_empty());
     }
 
     #[test]
@@ -154,6 +156,16 @@ mod tests {
         let dir = tempdir().unwrap();
         std::fs::write(dir.path().join("settings.json"), "{not json").unwrap();
         let s = Settings::load(dir.path()).unwrap();
-        assert!(s.vaults.is_empty());
+        assert!(s.folders.is_empty());
+    }
+
+    #[test]
+    fn loads_legacy_vaults_alias() {
+        let dir = tempdir().unwrap();
+        let raw = r#"{"vaults":[{"id":"v1","name":"old","path":"/tmp/x","added_at":"0"}]}"#;
+        std::fs::write(dir.path().join("settings.json"), raw).unwrap();
+        let s = Settings::load(dir.path()).unwrap();
+        assert_eq!(s.folders.len(), 1);
+        assert_eq!(s.folders[0].id, "v1");
     }
 }

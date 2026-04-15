@@ -8,12 +8,15 @@ import { useTheme } from "@/lib/theme";
 interface Props {
   source: string;
   filePath?: string;
+  articleRef?: React.RefObject<HTMLElement | null>;
+  onRendered?: () => void;
 }
 
 const scrollMemory = new Map<string, number>();
 
-export function Viewer({ source, filePath }: Props) {
-  const ref = React.useRef<HTMLDivElement>(null);
+export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
+  const internalRef = React.useRef<HTMLElement>(null);
+  const ref = (articleRef ?? internalRef) as React.RefObject<HTMLElement | null>;
   const scrollerRef = React.useRef<HTMLDivElement>(null);
   const { resolved } = useTheme();
   const [html, setHtml] = React.useState("");
@@ -28,7 +31,6 @@ export function Viewer({ source, filePath }: Props) {
     let cancelled = false;
 
     (async () => {
-      // Highlight all <pre><code class="language-X">...
       const codeBlocks = root.querySelectorAll<HTMLElement>("pre > code[class*='language-']");
       for (const code of Array.from(codeBlocks)) {
         const cls = code.className;
@@ -39,24 +41,22 @@ export function Viewer({ source, filePath }: Props) {
           const highlighted = await highlightCode(text, lang);
           if (cancelled) return;
           const pre = code.parentElement;
-          if (pre) {
-            pre.outerHTML = highlighted; // shiki returns a complete <pre class="shiki">...
-          }
+          if (pre) pre.outerHTML = highlighted;
         } catch {
           // leave plain on failure
         }
       }
       if (cancelled) return;
-      attachCopyButtons(root);
-      await renderMermaidBlocks(root, resolved);
+      attachCopyButtons(root as HTMLElement);
+      await renderMermaidBlocks(root as HTMLElement, resolved);
+      if (!cancelled) onRendered?.();
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [html, resolved]);
+  }, [html, resolved, ref, onRendered]);
 
-  // Scroll memory per file path.
   React.useEffect(() => {
     const el = scrollerRef.current;
     if (!el || !filePath) return;
@@ -68,7 +68,7 @@ export function Viewer({ source, filePath }: Props) {
   }, [filePath, html]);
 
   return (
-    <div ref={scrollerRef} className="h-full overflow-auto">
+    <div ref={scrollerRef} className="h-full w-full overflow-auto">
       <article ref={ref} className="markdown-body" dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );

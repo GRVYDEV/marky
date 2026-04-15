@@ -4,7 +4,7 @@ Instructions for future Claude sessions working on this repo. Read this first.
 
 ## What this is
 
-`marky` is a Tauri-based desktop markdown viewer. Primary use case: viewing Claude-generated plans and other markdown docs with good rendering of tables, code blocks, task lists, math, and mermaid diagrams. Launched via `marky FILENAME` to open a file or `marky FOLDER` to open a folder as a **vault**. Vaults persist across sessions (Obsidian-style), shown in a left sidebar. A **Cmd+K command palette** fuzzy-searches files across all vaults.
+`marky` is a Tauri-based desktop markdown viewer. Primary use case: viewing Claude-generated plans and other markdown docs with good rendering of tables, code blocks, task lists, math, and mermaid diagrams. Launched via `marky FILENAME` to open a file or `marky FOLDER` to open a folder as a **folder**. Folders persist across sessions (Obsidian-style), shown in a left sidebar. A **Cmd+K command palette** fuzzy-searches files across all folders.
 
 See `PLAN.md` for the full roadmap and architectural decisions.
 
@@ -20,7 +20,7 @@ See `PLAN.md` for the full roadmap and architectural decisions.
 - **KaTeX** for math, **mermaid** for diagrams
 - **nucleo** (Rust) — fuzzy matcher for Cmd+K file search
 - **cmdk** via shadcn `<Command />` — command palette UI
-- **notify** (Rust) — file watching per vault
+- **notify** (Rust) — file watching per folder
 - **DOMPurify** — sanitize rendered HTML before injection
 
 If a request would require swapping one of these, stop and confirm.
@@ -38,11 +38,11 @@ See `PLAN.md` → "Project Structure" for the full tree.
 ## Core conventions
 
 ### Rust (`src-tauri/`)
-- Keep `main.rs` thin — delegate to `cli.rs`, `fs.rs`, `vault.rs`, `search.rs`, `settings.rs`, `commands.rs`.
+- Keep `main.rs` thin — delegate to `cli.rs`, `fs.rs`, `folder.rs`, `search.rs`, `settings.rs`, `commands.rs`.
 - All frontend-callable functions live in `commands.rs` and are registered in `main.rs`'s `invoke_handler`.
 - Follow the `golang-style` skill's spirit even for Rust: happy path unindented, errors wrapped with context (`anyhow::Context` or `thiserror`).
 - File paths crossing the Rust↔JS boundary are always absolute strings.
-- **Vault state** lives in a single `Arc<RwLock<VaultRegistry>>` in Tauri managed state. Don't scatter vault state across modules.
+- **Folder state** lives in a single `Arc<RwLock<FolderRegistry>>` in Tauri managed state. Don't scatter folder state across modules.
 - **Fuzzy search index** is rebuilt from the registry on watcher events, debounced at 200ms. Keep it in-memory only.
 
 ### Frontend (`src/`)
@@ -99,12 +99,12 @@ pnpm tauri build         # production bundle (.app + .dmg on mac)
 3. Add styling to `src/styles/markdown.css`.
 4. Add a fixture to `src/lib/__fixtures__/` and a Vitest snapshot.
 
-## Vault conventions
+## Folder conventions
 
-- A vault is a **pointer to a folder** — Marky never writes inside the folder. All vault state (name, id) lives in Marky's `app_data_dir/settings.json`.
-- Default ignore list for vault trees: hidden dotfiles, `node_modules`, `.git`, `target`, `dist`, `build`. Centralize this in `vault.rs::DEFAULT_IGNORES`.
+- A folder is a **pointer to a folder** — Marky never writes inside the folder. All folder state (name, id) lives in Marky's `app_data_dir/settings.json`.
+- Default ignore list for folder trees: hidden dotfiles, `node_modules`, `.git`, `target`, `dist`, `build`. Centralize this in `folder.rs::DEFAULT_IGNORES`.
 - Default file extensions shown: `.md`, `.markdown`, `.mdx`.
-- Vault IDs are UUIDs generated on add. Paths alone aren't stable identifiers (folders can move).
+- Folder IDs are UUIDs generated on add. Paths alone aren't stable identifiers (folders can move).
 
 ## Cmd+K conventions
 

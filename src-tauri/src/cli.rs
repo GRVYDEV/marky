@@ -5,14 +5,14 @@ use std::path::{Path, PathBuf};
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum InitialTarget {
     File { path: String },
-    Vault { path: String },
+    Folder { path: String },
     None,
 }
 
 /// Resolve a CLI argv into an InitialTarget.
 ///
 /// - `marky FILE.md` → File
-/// - `marky DIR/`     → Vault
+/// - `marky DIR/`     → Folder
 /// - `marky` (none)   → None
 /// - missing path     → None (we don't error; user gets empty state)
 pub fn resolve(args: &[String]) -> InitialTarget {
@@ -36,7 +36,7 @@ fn classify(path: &Path) -> InitialTarget {
         None => return InitialTarget::None,
     };
     if path.is_dir() {
-        InitialTarget::Vault { path: s }
+        InitialTarget::Folder { path: s }
     } else if path.is_file() {
         InitialTarget::File { path: s }
     } else {
@@ -75,10 +75,10 @@ mod tests {
     }
 
     #[test]
-    fn resolves_dir_to_vault() {
+    fn resolves_dir_to_folder() {
         let dir = tempdir().unwrap();
         let args = vec!["marky".into(), dir.path().to_string_lossy().into_owned()];
-        matches!(resolve(&args), InitialTarget::Vault { .. });
+        matches!(resolve(&args), InitialTarget::Folder { .. });
     }
 
     #[test]

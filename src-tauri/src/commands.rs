@@ -1,10 +1,10 @@
 use crate::cli::InitialTarget;
 use crate::error::{AppError, AppResult};
+use crate::folder::TreeNode;
 use crate::registry::SharedRegistry;
 use crate::search::{search, SearchResult};
-use crate::settings::{data_dir, Vault};
-use crate::vault::TreeNode;
-use crate::watcher::{watch_vault, SharedWatchers};
+use crate::settings::{data_dir, Folder};
+use crate::watcher::{watch_folder, SharedWatchers};
 use parking_lot::Mutex;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -17,7 +17,6 @@ pub fn get_initial_target(state: State<'_, InitialTargetState>) -> InitialTarget
     state.0.lock().clone()
 }
 
-/// Replace the current initial target — used when single-instance fires for a new file.
 #[tauri::command]
 pub fn set_initial_target(target: InitialTarget, state: State<'_, InitialTargetState>) {
     *state.0.lock() = target;
@@ -32,50 +31,47 @@ pub fn read_file(path: String, registry: State<'_, SharedRegistry>) -> AppResult
 }
 
 #[tauri::command]
-pub fn list_vaults(registry: State<'_, SharedRegistry>) -> Vec<Vault> {
-    registry.vaults()
+pub fn list_folders(registry: State<'_, SharedRegistry>) -> Vec<Folder> {
+    registry.folders()
 }
 
 #[tauri::command]
-pub fn add_vault(
+pub fn add_folder(
     app: AppHandle,
     path: String,
     registry: State<'_, SharedRegistry>,
     watchers: State<'_, SharedWatchers>,
-) -> AppResult<Vault> {
-    let vault = registry.add_vault(PathBuf::from(&path))?;
+) -> AppResult<Folder> {
+    let folder = registry.add_folder(PathBuf::from(&path))?;
     registry.save(&data_dir())?;
-    if let Ok(handle) = watch_vault(
+    if let Ok(handle) = watch_folder(
         app.clone(),
         Arc::clone(&registry),
-        vault.id.clone(),
-        PathBuf::from(&vault.path),
+        folder.id.clone(),
+        PathBuf::from(&folder.path),
     ) {
-        watchers.insert(vault.id.clone(), handle);
+        watchers.insert(folder.id.clone(), handle);
     }
-    Ok(vault)
+    Ok(folder)
 }
 
 #[tauri::command]
-pub fn remove_vault(
+pub fn remove_folder(
     id: String,
     registry: State<'_, SharedRegistry>,
     watchers: State<'_, SharedWatchers>,
 ) -> AppResult<()> {
-    registry.remove_vault(&id);
+    registry.remove_folder(&id);
     watchers.remove(&id);
     registry.save(&data_dir())?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn read_vault_tree(
-    id: String,
-    registry: State<'_, SharedRegistry>,
-) -> AppResult<TreeNode> {
+pub fn read_folder_tree(id: String, registry: State<'_, SharedRegistry>) -> AppResult<TreeNode> {
     registry
         .tree(&id)
-        .ok_or_else(|| AppError::NotFound(format!("vault {id}")))
+        .ok_or_else(|| AppError::NotFound(format!("folder {id}")))
 }
 
 #[derive(serde::Deserialize)]
@@ -90,7 +86,7 @@ fn default_limit() -> usize {
 }
 
 #[tauri::command]
-pub fn search_vault_files(
+pub fn search_files(
     args: SearchArgs,
     registry: State<'_, SharedRegistry>,
 ) -> Vec<SearchResult> {
