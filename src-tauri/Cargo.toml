@@ -1,0 +1,40 @@
+[package]
+name = "marky"
+version = "0.1.0"
+description = "A fast markdown viewer with vault support"
+authors = ["Garrett Graves"]
+edition = "2021"
+
+[lib]
+name = "marky_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+thiserror = "2"
+notify = "7"
+notify-debouncer-full = "0.4"
+nucleo = "0.5"
+ignore = "0.4"
+uuid = { version = "1", features = ["v4", "serde"] }
+parking_lot = "0.12"
+dirs = "5"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
