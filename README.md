@@ -1,14 +1,56 @@
-# Marky
+<h1 align="center">
+  <br>
+   Marky
+  <br>
+</h1>
 
-A fast, native markdown viewer for macOS. Open any `.md` file from the terminal and get beautiful rendering of tables, code blocks, task lists, math, and diagrams — with live reload when the file changes on disk.
+<h4 align="center">A fast, native markdown viewer for macOS built with <a href="https://v2.tauri.app">Tauri v2</a>, <a href="https://react.dev">React</a>, and <a href="https://github.com/markdown-it/markdown-it">markdown-it</a>. Beautiful rendering of tables, code blocks, task lists, math, and diagrams — with live reload.</h4>
 
-Built with Tauri v2, React, and a markdown-it rendering pipeline.
+<p align="center">
+    <a href="https://github.com/GRVYDEV/marky/stargazers"><img src="https://img.shields.io/github/stars/GRVYDEV/marky" alt="Stars Badge"/></a>
+    <a href="https://github.com/GRVYDEV/marky/network/members"><img src="https://img.shields.io/github/forks/GRVYDEV/marky" alt="Forks Badge"/></a>
+</p>
+
+<p align="center">
+  <a href="https://youtu.be/nGBxt8uOVjc">View Demo</a> •
+  <a href="#install">Install</a> •
+  <a href="https://github.com/GRVYDEV/marky/issues">Request Features</a>
+</p>
 
 ![Marky screenshot](assets/marky-img.png)
 
-[![Marky demo](https://img.youtube.com/vi/nGBxt8uOVjc/maxresdefault.jpg)](https://youtu.be/nGBxt8uOVjc)
+<!-- TABLE OF CONTENTS -->
+<details open="open">
+  <summary><h2 style="display: inline-block">Table of Contents</h2></summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#features">Features</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#install">Install</a>
+      <ul>
+        <li><a href="#homebrew">Homebrew</a></li>
+        <li><a href="#from-source">From Source</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
+    <li><a href="#development">Development</a></li>
+    <li><a href="#built-with">Built With</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#contact-me">Contact Me</a></li>
+  </ol>
+</details>
 
-## Features
+## About The Project
+
+Marky is a desktop markdown viewer designed for one thing: opening `.md` files from the terminal and getting beautiful, instant rendering. Launch it with `marky FILENAME` to view a file or `marky FOLDER` to open a folder as a persistent workspace (Obsidian-style). Files reload live as they change on disk — perfect for viewing Claude-generated plans, documentation, or notes as they're being written.
+
+### Features
 
 - **CLI-first** — `marky README.md` opens a window. `marky ./docs/` opens a folder.
 - **Live reload** — edits on disk (from your editor, Claude, etc.) update the view instantly.
@@ -26,7 +68,7 @@ Built with Tauri v2, React, and a markdown-it rendering pipeline.
 
 ### Homebrew
 
-_NOTE_: I am currently waiting for apple developer review so for the time being the app is not signed. This will be fixed soon
+_NOTE_: I am currently waiting for apple developer review so for the time being the app is not signed. This will be fixed soon.
 
 ```bash
 brew tap GRVYDEV/tap
@@ -35,7 +77,7 @@ brew install --cask GRVYDEV/tap/marky
 xattr -cr /Applications/Marky.app
 ```
 
-### From source
+### From Source
 
 Requires [Rust](https://rustup.rs/), [Node.js](https://nodejs.org/), and [pnpm](https://pnpm.io/).
 
@@ -70,7 +112,7 @@ marky ./docs/
 marky
 ```
 
-### Keyboard shortcuts
+## Keyboard Shortcuts
 
 | Shortcut      | Action                              |
 | ------------- | ----------------------------------- |
@@ -86,7 +128,7 @@ pnpm install
 pnpm tauri dev       # dev server with HMR
 ```
 
-### Run tests
+### Run Tests
 
 ```bash
 # Frontend
@@ -96,7 +138,7 @@ pnpm test
 cd src-tauri && cargo test
 ```
 
-### Project structure
+### Project Structure
 
 ```
 src-tauri/       Rust backend — CLI, file I/O, file watching, folder registry, fuzzy search
@@ -108,7 +150,7 @@ src/styles/      Tailwind base + markdown prose styles
 scripts/         Install helpers
 ```
 
-## Stack
+## Built With
 
 | Layer               | Tech                                                      |
 | ------------------- | --------------------------------------------------------- |
@@ -131,15 +173,22 @@ scripts/         Install helpers
 
 ## Contributing
 
-Contributions are welcome! Please open an issue first to discuss what you'd like to change.
+Contributions are what make the open source community such an amazing place to learn, inspire, and create.
+Any contributions you make are **greatly appreciated**.
 
-```bash
-pnpm install
-pnpm tauri dev
-```
+1. Fork the Project
+2. Create your Feature Branch: `git checkout -b feature/AmazingFeature`
+3. Commit your Changes: `git commit -m 'Add some AmazingFeature'`
+4. Push to the Branch: `git push origin feature/AmazingFeature`
+5. Open a Pull Request
 
 Before submitting a PR:
 
 - Run `pnpm test` and `cd src-tauri && cargo test`
 - Run `pnpm typecheck`
 - Actually open a markdown file with `pnpm tauri dev` and verify it renders correctly
+
+## Contact Me
+
+> GitHub [@GRVYDEV](https://github.com/GRVYDEV) &nbsp;&middot;&nbsp;
+> Twitter [@gaborgraves](https://twitter.com/gaborgraves)
