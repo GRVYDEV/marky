@@ -116,6 +116,12 @@ scripts/         Install helpers
 | Styling             | [Tailwind CSS](https://tailwindcss.com)                   |
 | File watching       | [notify](https://github.com/notify-rs/notify)             |
 
+## Roadmap
+
+- **x86 & Linux support** — currently macOS ARM only; expanding to x86 macOS and Linux
+- **Built-in AI chat** — chat with Claude Code or Codex directly inside your markdown documents
+- **Git diff review** — view and review local git diffs without leaving the app
+
 ## Contributing
 
 Contributions are welcome! Please open an issue first to discuss what you'd like to change.
