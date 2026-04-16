@@ -184,13 +184,13 @@ function AppShell() {
         <FolderSidebar
           activePath={activeTab?.filePath}
           onOpenFile={openFile}
+          onOpenPalette={() => setPaletteOpen(true)}
           refreshNonce={sidebarRefresh}
         />
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
         <Toolbar
           filePath={activeTab?.filePath}
-          onOpenPalette={() => setPaletteOpen(true)}
           onOpenFile={handlePickFile}
           onSplit={handleSplit}
           onCloseSplit={handleCloseSplit}

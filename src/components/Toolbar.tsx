@@ -6,7 +6,6 @@ import type { SplitDirection } from "@/lib/workspace";
 
 interface Props {
   filePath?: string;
-  onOpenPalette: () => void;
   onOpenFile: () => void;
   onSplit: (d: SplitDirection) => void;
   onCloseSplit: () => void;
@@ -14,7 +13,7 @@ interface Props {
   onFind: () => void;
 }
 
-export function Toolbar({ filePath, onOpenPalette, onOpenFile, onSplit, onCloseSplit, isSplit, onFind }: Props) {
+export function Toolbar({ filePath, onOpenFile, onSplit, onCloseSplit, isSplit, onFind }: Props) {
   const { theme, setTheme } = useTheme();
   const cycleTheme = () =>
     setTheme(theme === "light" ? "dark" : theme === "dark" ? "system" : "light");
@@ -39,14 +38,6 @@ export function Toolbar({ filePath, onOpenPalette, onOpenFile, onSplit, onCloseS
             </Button>
           </TooltipTrigger>
           <TooltipContent>Open file (⌘O)</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button onClick={onOpenPalette} variant="ghost" size="icon" className="h-7 w-7">
-              <Search className="h-3.5 w-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Quick open (⌘K)</TooltipContent>
         </Tooltip>
         {isSplit ? (
           <Tooltip>
