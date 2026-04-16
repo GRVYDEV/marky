@@ -6,6 +6,8 @@ Built with Tauri v2, React, and a markdown-it rendering pipeline.
 
 ![Marky screenshot](assets/marky-img.png)
 
+[![Marky demo](https://img.youtube.com/vi/nGBxt8uOVjc/maxresdefault.jpg)](https://youtu.be/nGBxt8uOVjc)
+
 ## Features
 
 - **CLI-first** — `marky README.md` opens a window. `marky ./docs/` opens a folder.
