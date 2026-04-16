@@ -8,7 +8,7 @@ use crate::watcher::{watch_folder, SharedWatchers};
 use parking_lot::Mutex;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
 
 pub struct InitialTargetState(pub Mutex<InitialTarget>);
 
@@ -52,11 +52,13 @@ pub fn add_folder(
     ) {
         watchers.insert(folder.id.clone(), handle);
     }
+    let _ = app.emit("folder://changed", &folder.id);
     Ok(folder)
 }
 
 #[tauri::command]
 pub fn remove_folder(
+    app: AppHandle,
     id: String,
     registry: State<'_, SharedRegistry>,
     watchers: State<'_, SharedWatchers>,
@@ -64,6 +66,7 @@ pub fn remove_folder(
     registry.remove_folder(&id);
     watchers.remove(&id);
     registry.save(&data_dir())?;
+    let _ = app.emit("folder://changed", &id);
     Ok(())
 }
 

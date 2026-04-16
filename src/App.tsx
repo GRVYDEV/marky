@@ -8,7 +8,7 @@ import { Pane } from "@/components/Pane";
 import { TableOfContents } from "@/components/TableOfContents";
 import { Toolbar } from "@/components/Toolbar";
 import { CommandPalette } from "@/components/CommandPalette";
-import { tauri, onCliTarget, type Folder } from "@/lib/tauri";
+import { tauri, onCliTarget, onFolderChanged, type Folder } from "@/lib/tauri";
 import {
   createInitialState,
   reduce,
@@ -72,6 +72,16 @@ function AppShell() {
       refreshFolders();
     })();
   }, [openFile, refreshFolders]);
+
+  // Keep App-level folders in sync whenever folders are added/removed/changed.
+  useEffect(() => {
+    const off = onFolderChanged(() => {
+      refreshFolders();
+    });
+    return () => {
+      off.then((fn) => fn());
+    };
+  }, [refreshFolders]);
 
   // CLI re-target via single-instance.
   useEffect(() => {
