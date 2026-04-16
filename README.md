@@ -22,6 +22,17 @@ Built with Tauri v2, React, and a markdown-it rendering pipeline.
 
 ## Install
 
+### Homebrew
+
+_NOTE_: I am currently waiting for apple developer review so for the time being the app is not signed. This will be fixed soon
+
+```bash
+brew tap GRVYDEV/tap
+brew install --cask GRVYDEV/tap/marky
+# This is temporary until I can sign the binary
+xattr -cr /Applications/Marky.app
+```
+
 ### From source
 
 Requires [Rust](https://rustup.rs/), [Node.js](https://nodejs.org/), and [pnpm](https://pnpm.io/).
@@ -42,12 +53,6 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # fish
 set -Ux fish_user_paths $HOME/.local/bin $fish_user_paths
-```
-
-### Homebrew (coming soon)
-
-```bash
-brew install marky
 ```
 
 ## Usage
