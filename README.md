@@ -4,6 +4,8 @@ A fast, native markdown viewer for macOS. Open any `.md` file from the terminal 
 
 Built with Tauri v2, React, and a markdown-it rendering pipeline.
 
+![Marky screenshot](assets/marky-img.png)
+
 ## Features
 
 - **CLI-first** — `marky README.md` opens a window. `marky ./docs/` opens a folder.
