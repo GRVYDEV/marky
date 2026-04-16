@@ -191,4 +191,4 @@ Before submitting a PR:
 ## Contact Me
 
 > GitHub [@GRVYDEV](https://github.com/GRVYDEV) &nbsp;&middot;&nbsp;
-> Twitter [@gaborgraves](https://twitter.com/gaborgraves)
+> Twitter [@grvydev](https://twitter.com/grvydev)
