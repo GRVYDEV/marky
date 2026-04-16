@@ -63,12 +63,12 @@ marky
 
 ### Keyboard shortcuts
 
-| Shortcut | Action |
-|---|---|
-| `Cmd+K` | Command palette (fuzzy file search) |
-| `Cmd+O` | Open file |
-| `Cmd+Shift+O` | Add folder |
-| `Cmd+F` | Search in page |
+| Shortcut      | Action                              |
+| ------------- | ----------------------------------- |
+| `Cmd+K`       | Command palette (fuzzy file search) |
+| `Cmd+O`       | Open file                           |
+| `Cmd+Shift+O` | Add folder                          |
+| `Cmd+F`       | Search in page                      |
 
 ## Development
 
@@ -101,18 +101,18 @@ scripts/         Install helpers
 
 ## Stack
 
-| Layer | Tech |
-|---|---|
-| Desktop shell | [Tauri v2](https://v2.tauri.app) |
-| Frontend | React + TypeScript + Vite |
-| Markdown | [markdown-it](https://github.com/markdown-it/markdown-it) |
-| Syntax highlighting | [Shiki](https://shiki.style) |
-| Math | [KaTeX](https://katex.org) |
-| Diagrams | [Mermaid](https://mermaid.js.org) |
-| Fuzzy search | [nucleo](https://github.com/helix-editor/nucleo) |
-| UI primitives | [shadcn/ui](https://ui.shadcn.com) |
-| Styling | [Tailwind CSS](https://tailwindcss.com) |
-| File watching | [notify](https://github.com/notify-rs/notify) |
+| Layer               | Tech                                                      |
+| ------------------- | --------------------------------------------------------- |
+| Desktop shell       | [Tauri v2](https://v2.tauri.app)                          |
+| Frontend            | React + TypeScript + Vite                                 |
+| Markdown            | [markdown-it](https://github.com/markdown-it/markdown-it) |
+| Syntax highlighting | [Shiki](https://shiki.style)                              |
+| Math                | [KaTeX](https://katex.org)                                |
+| Diagrams            | [Mermaid](https://mermaid.js.org)                         |
+| Fuzzy search        | [nucleo](https://github.com/helix-editor/nucleo)          |
+| UI primitives       | [shadcn/ui](https://ui.shadcn.com)                        |
+| Styling             | [Tailwind CSS](https://tailwindcss.com)                   |
+| File watching       | [notify](https://github.com/notify-rs/notify)             |
 
 ## Contributing
 
@@ -124,10 +124,7 @@ pnpm tauri dev
 ```
 
 Before submitting a PR:
+
 - Run `pnpm test` and `cd src-tauri && cargo test`
 - Run `pnpm typecheck`
 - Actually open a markdown file with `pnpm tauri dev` and verify it renders correctly
-
-## License
-
-MIT
