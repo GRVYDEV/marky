@@ -30,7 +30,7 @@ pub fn resolve(args: &[String]) -> InitialTarget {
     classify(&abs)
 }
 
-fn classify(path: &Path) -> InitialTarget {
+pub(crate) fn classify(path: &Path) -> InitialTarget {
     let s = match path.to_str() {
         Some(s) => s.to_string(),
         None => return InitialTarget::None,
