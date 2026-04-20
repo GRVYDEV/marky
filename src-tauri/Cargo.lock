@@ -2203,7 +2203,7 @@ dependencies = [
 
 [[package]]
 name = "marky"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "anyhow",
  "dirs 5.0.1",
