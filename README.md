@@ -4,7 +4,7 @@
   <br>
 </h1>
 
-<h4 align="center">A fast, native markdown viewer for macOS built with <a href="https://v2.tauri.app">Tauri v2</a>, <a href="https://react.dev">React</a>, and <a href="https://github.com/markdown-it/markdown-it">markdown-it</a>. Beautiful rendering of tables, code blocks, task lists, math, and diagrams — with live reload.</h4>
+<h4 align="center">A fast, native markdown viewer for macOS and Linux built with <a href="https://v2.tauri.app">Tauri v2</a>, <a href="https://react.dev">React</a>, and <a href="https://github.com/markdown-it/markdown-it">markdown-it</a>. Beautiful rendering of tables, code blocks, task lists, math, and diagrams — with live reload.</h4>
 
 <p align="center">
     <a href="https://github.com/GRVYDEV/marky/stargazers"><img src="https://img.shields.io/github/stars/GRVYDEV/marky" alt="Stars Badge"/></a>
@@ -32,7 +32,9 @@
     <li>
       <a href="#install">Install</a>
       <ul>
-        <li><a href="#homebrew">Homebrew</a></li>
+        <li><a href="#homebrew-macos">Homebrew (macOS)</a></li>
+        <li><a href="#ubuntu--debian">Ubuntu / Debian</a></li>
+        <li><a href="#appimage-linux">AppImage (Linux)</a></li>
         <li><a href="#from-source">From Source</a></li>
       </ul>
     </li>
@@ -66,7 +68,7 @@ Marky is a desktop markdown viewer designed for one thing: opening `.md` files f
 
 ## Install
 
-### Homebrew
+### Homebrew (macOS)
 
 _NOTE_: I am currently waiting for apple developer review so for the time being the app is not signed. This will be fixed soon.
 
@@ -75,6 +77,30 @@ brew tap GRVYDEV/tap
 brew install --cask GRVYDEV/tap/marky
 # This is temporary until I can sign the binary
 xattr -cr /Applications/Marky.app
+```
+
+### Ubuntu / Debian
+
+Download the `.deb` for your architecture from the [latest release](https://github.com/GRVYDEV/marky/releases/latest):
+
+```bash
+# amd64
+curl -LO https://github.com/GRVYDEV/marky/releases/latest/download/marky_0.1.2_amd64.deb
+sudo dpkg -i marky_0.1.2_amd64.deb
+
+# arm64
+curl -LO https://github.com/GRVYDEV/marky/releases/latest/download/marky_0.1.2_arm64.deb
+sudo dpkg -i marky_0.1.2_arm64.deb
+```
+
+### AppImage (Linux)
+
+Download the AppImage from the [latest release](https://github.com/GRVYDEV/marky/releases/latest):
+
+```bash
+curl -LO https://github.com/GRVYDEV/marky/releases/latest/download/Marky_0.1.2_amd64.AppImage
+chmod +x Marky_0.1.2_amd64.AppImage
+./Marky_0.1.2_amd64.AppImage
 ```
 
 ### From Source
@@ -167,7 +193,6 @@ scripts/         Install helpers
 
 ## Roadmap
 
-- **x86 & Linux support** — currently macOS ARM only; expanding to x86 macOS and Linux
 - **Built-in AI chat** — chat with Claude Code or Codex directly inside your markdown documents
 - **Git diff review** — view and review local git diffs without leaving the app
 
