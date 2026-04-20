@@ -7,7 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
-- Text resizing and column resizing
+- Adjustable text size — scales all text app-wide (sidebar, toolbar, command palette, markdown content) via Settings dropdown or Cmd+Plus/Cmd+Minus/Cmd+0
+- Resizable sidebars — drag the edge of the folder sidebar or table of contents to resize; double-click to reset to default
 - Copy contents as markdown
 - Linux builds (.deb and AppImage) for amd64 and arm64
 
