@@ -34,17 +34,38 @@ md.use(anchor, {
 md.use(footnote);
 md.use(taskLists, { enabled: true, label: false });
 
+// Inject data-source-map attributes on block-level tokens so the copy handler
+// can map rendered DOM selections back to original source lines.
+md.core.ruler.push("source_map_attrs", (state) => {
+  for (const token of state.tokens) {
+    if (!token.map) continue;
+    const attr = `${token.map[0]},${token.map[1]}`;
+    if (token.nesting === 1) {
+      // Opening block tags: p, h1–h6, ul, ol, li, blockquote, table, etc.
+      token.attrPush(["data-source-map", attr]);
+    } else if (token.nesting === 0 && (token.type === "hr" || token.type === "code_block")) {
+      token.attrPush(["data-source-map", attr]);
+    }
+    // fence tokens are handled in the fence renderer override below.
+  }
+});
+
 // Mark mermaid blocks for client-side rendering rather than syntax highlighting.
 const defaultFence = md.renderer.rules.fence!;
 md.renderer.rules.fence = (tokens, idx, options, env, self) => {
   const token = tokens[idx];
   const info = (token.info || "").trim();
+  const sourceMapAttr = token.map ? ` data-source-map="${token.map[0]},${token.map[1]}"` : "";
   if (info === "mermaid") {
     const code = token.content;
     const escaped = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    return `<pre class="mermaid-pending"><code>${escaped}</code></pre>`;
+    return `<pre class="mermaid-pending"${sourceMapAttr}><code>${escaped}</code></pre>`;
   }
-  return defaultFence(tokens, idx, options, env, self);
+  let html = defaultFence(tokens, idx, options, env, self);
+  if (sourceMapAttr) {
+    html = html.replace(/^<pre(?=[\s>])/, `<pre${sourceMapAttr}`);
+  }
+  return html;
 };
 
 // Add target=_blank to external http(s) links.
@@ -62,7 +83,7 @@ md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
 export function renderMarkdown(source: string): string {
   const html = md.render(source);
   return DOMPurify.sanitize(html, {
-    ADD_ATTR: ["target", "class", "id", "aria-hidden"],
+    ADD_ATTR: ["target", "class", "id", "aria-hidden", "data-source-map"],
     ADD_TAGS: ["section"],
   });
 }

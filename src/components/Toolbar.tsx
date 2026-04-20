@@ -1,7 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Sun, Moon, Monitor, FileText, SplitSquareHorizontal, SplitSquareVertical, X } from "lucide-react";
-import { useTheme } from "@/lib/theme";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
+import { Search, Sun, Moon, Monitor, FileText, SplitSquareHorizontal, SplitSquareVertical, X, Settings } from "lucide-react";
+import { useTheme, type Theme } from "@/lib/theme";
+import { usePreferences } from "@/lib/preferences";
 import type { SplitDirection } from "@/lib/workspace";
 
 interface Props {
@@ -15,9 +29,8 @@ interface Props {
 
 export function Toolbar({ filePath, onOpenFile, onSplit, onCloseSplit, isSplit, onFind }: Props) {
   const { theme, setTheme } = useTheme();
-  const cycleTheme = () =>
-    setTheme(theme === "light" ? "dark" : theme === "dark" ? "system" : "light");
-  const Icon = theme === "light" ? Sun : theme === "dark" ? Moon : Monitor;
+  const { copyAsMarkdown, setCopyAsMarkdown } = usePreferences();
+  const ThemeIcon = theme === "light" ? Sun : theme === "dark" ? Moon : Monitor;
 
   return (
     <header className="flex h-9 shrink-0 items-center justify-between border-b bg-card/40 px-3">
@@ -68,14 +81,51 @@ export function Toolbar({ filePath, onOpenFile, onSplit, onCloseSplit, isSplit, 
             </Tooltip>
           </>
         )}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button onClick={cycleTheme} variant="ghost" size="icon" className="h-7 w-7">
-              <Icon className="h-3.5 w-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Theme: {theme}</TooltipContent>
-        </Tooltip>
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <Settings className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent>Settings</TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Settings</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuCheckboxItem
+              checked={copyAsMarkdown}
+              onCheckedChange={setCopyAsMarkdown}
+            >
+              Copy as Markdown
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <ThemeIcon className="h-3.5 w-3.5" />
+                Theme
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(v as Theme)}>
+                  <DropdownMenuRadioItem value="light">
+                    <Sun className="h-3.5 w-3.5" />
+                    Light
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="dark">
+                    <Moon className="h-3.5 w-3.5" />
+                    Dark
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="system">
+                    <Monitor className="h-3.5 w-3.5" />
+                    System
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

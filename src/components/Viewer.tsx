@@ -3,7 +3,9 @@ import { renderMarkdown } from "@/lib/markdown";
 import { highlightCode } from "@/lib/highlight";
 import { renderMermaidBlocks } from "@/lib/mermaid";
 import { attachCopyButtons } from "@/components/CodeCopyOverlay";
+import { handleCopyAsMarkdown } from "@/lib/copyAsMarkdown";
 import { useTheme } from "@/lib/theme";
+import { usePreferences } from "@/lib/preferences";
 
 interface Props {
   source: string;
@@ -19,6 +21,7 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
   const ref = (articleRef ?? internalRef) as React.RefObject<HTMLElement | null>;
   const scrollerRef = React.useRef<HTMLDivElement>(null);
   const { resolved } = useTheme();
+  const { copyAsMarkdown } = usePreferences();
   const [html, setHtml] = React.useState("");
 
   // Keep onRendered fresh without making it a dep — otherwise every parent
@@ -53,7 +56,12 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
           const tpl = document.createElement("template");
           tpl.innerHTML = highlighted.trim();
           const replacement = tpl.content.firstElementChild;
-          if (replacement) pre.replaceWith(replacement);
+          if (replacement) {
+            // Preserve source map attribute through Shiki replacement.
+            const sourceMap = pre.getAttribute("data-source-map");
+            if (sourceMap) replacement.setAttribute("data-source-map", sourceMap);
+            pre.replaceWith(replacement);
+          }
         } catch {
           // leave plain on failure
         }
@@ -80,6 +88,19 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
   }, [filePath, html]);
+
+  // Intercept copy events to write original markdown source to clipboard.
+  React.useEffect(() => {
+    const root = ref.current;
+    if (!root || !copyAsMarkdown) return;
+
+    const onCopy = (e: ClipboardEvent) => {
+      handleCopyAsMarkdown(e, root as HTMLElement, source);
+    };
+
+    root.addEventListener("copy", onCopy);
+    return () => root.removeEventListener("copy", onCopy);
+  }, [source, copyAsMarkdown]);
 
   // Memoize the inner-html object so its reference is stable across renders.
   // If we passed a fresh { __html: html } object every render, React would

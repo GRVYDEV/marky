@@ -31,6 +31,9 @@ export async function renderMermaidBlocks(root: HTMLElement, theme: "light" | "d
     } catch (err) {
       wrapper.textContent = `Mermaid render error: ${(err as Error).message}`;
     }
+    // Preserve source map attribute through mermaid replacement.
+    const sourceMap = pre.getAttribute("data-source-map");
+    if (sourceMap) wrapper.setAttribute("data-source-map", sourceMap);
     pre.replaceWith(wrapper);
   }
 }

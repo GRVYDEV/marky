@@ -2,6 +2,7 @@ import { useEffect, useReducer, useState, useCallback, useRef } from "react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { ThemeProvider } from "@/lib/theme";
+import { PreferencesProvider } from "@/lib/preferences";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { FolderSidebar } from "@/components/FolderSidebar";
 import { Pane } from "@/components/Pane";
@@ -278,9 +279,11 @@ function cssEscape(s: string): string {
 export default function App() {
   return (
     <ThemeProvider>
-      <TooltipProvider delayDuration={300}>
-        <AppShell />
-      </TooltipProvider>
+      <PreferencesProvider>
+        <TooltipProvider delayDuration={300}>
+          <AppShell />
+        </TooltipProvider>
+      </PreferencesProvider>
     </ThemeProvider>
   );
 }
