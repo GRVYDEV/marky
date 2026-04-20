@@ -10,7 +10,7 @@ import { Pane } from "@/components/Pane";
 import { TableOfContents } from "@/components/TableOfContents";
 import { Toolbar } from "@/components/Toolbar";
 import { CommandPalette } from "@/components/CommandPalette";
-import { tauri, onCliTarget, onFolderChanged, onFileChanged, type Folder } from "@/lib/tauri";
+import { tauri, onCliTarget, onFolderChanged, onFileChanged, type AnnotatedFolder } from "@/lib/tauri";
 import {
   createInitialState,
   reduce,
@@ -42,7 +42,7 @@ function AppShell() {
   const [state, dispatch] = useReducer(reduce, undefined, () => createInitialState(WELCOME));
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [searchPaneId, setSearchPaneId] = useState<string | null>(null);
-  const [folders, setFolders] = useState<Folder[]>([]);
+  const [folders, setFolders] = useState<AnnotatedFolder[]>([]);
   const [sidebarRefresh, setSidebarRefresh] = useState(0);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const {
@@ -56,7 +56,7 @@ function AppShell() {
   const isSplit = state.panes.length > 1;
 
   const refreshFolders = useCallback(async () => {
-    setFolders(await tauri.listFolders());
+    setFolders(await tauri.listFoldersGrouped());
     setSidebarRefresh((n) => n + 1);
   }, []);
 

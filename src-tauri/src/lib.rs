@@ -117,6 +117,7 @@ pub fn run() {
             commands::set_initial_target,
             commands::read_file,
             commands::list_folders,
+            commands::list_folders_grouped,
             commands::add_folder,
             commands::remove_folder,
             commands::read_folder_tree,

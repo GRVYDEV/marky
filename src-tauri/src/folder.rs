@@ -170,6 +170,26 @@ pub fn flatten_files(
     }
 }
 
+/// Walk up from `start` looking for a `.git` directory.
+/// Stops at the user's home directory (inclusive) or filesystem root,
+/// whichever comes first. Never walks above home.
+pub fn find_git_repo_root(start: &Path) -> Option<String> {
+    let ceiling = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
+    let mut dir = if start.is_dir() {
+        start.to_path_buf()
+    } else {
+        start.parent()?.to_path_buf()
+    };
+    loop {
+        if dir.join(".git").exists() {
+            return dir.to_str().map(String::from);
+        }
+        if dir == ceiling || !dir.pop() {
+            return None;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -247,5 +267,31 @@ mod tests {
             files[0].relative_path.replace('\\', "/"),
             "docs/guide/intro.md"
         );
+    }
+
+    #[test]
+    fn find_git_repo_root_finds_repo() {
+        let dir = tempdir().unwrap();
+        fs::create_dir_all(dir.path().join(".git")).unwrap();
+        fs::create_dir_all(dir.path().join("sub/deep")).unwrap();
+        let result = find_git_repo_root(&dir.path().join("sub/deep"));
+        assert_eq!(result, Some(dir.path().to_str().unwrap().to_string()));
+    }
+
+    #[test]
+    fn find_git_repo_root_at_root_itself() {
+        let dir = tempdir().unwrap();
+        fs::create_dir_all(dir.path().join(".git")).unwrap();
+        let result = find_git_repo_root(dir.path());
+        assert_eq!(result, Some(dir.path().to_str().unwrap().to_string()));
+    }
+
+    #[test]
+    fn find_git_repo_root_none_when_no_git() {
+        let dir = tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("sub")).unwrap();
+        // tempdir is typically in /tmp which has no .git above it
+        let result = find_git_repo_root(&dir.path().join("sub"));
+        assert_eq!(result, None);
     }
 }

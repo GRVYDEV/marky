@@ -13,6 +13,11 @@ export interface Folder {
   added_at: string;
 }
 
+export interface AnnotatedFolder extends Folder {
+  repo_root: string | null;
+  repo_name: string | null;
+}
+
 export interface TreeNode {
   name: string;
   path: string;
@@ -36,6 +41,7 @@ export const tauri = {
   setInitialTarget: (target: InitialTarget) => invoke<void>("set_initial_target", { target }),
   readFile: (path: string) => invoke<string>("read_file", { path }),
   listFolders: () => invoke<Folder[]>("list_folders"),
+  listFoldersGrouped: () => invoke<AnnotatedFolder[]>("list_folders_grouped"),
   addFolder: (path: string) => invoke<Folder>("add_folder", { path }),
   removeFolder: (id: string) => invoke<void>("remove_folder", { id }),
   readFolderTree: (id: string) => invoke<TreeNode>("read_folder_tree", { id }),
@@ -53,6 +59,7 @@ export interface PreferencesPayload {
   sidebar_left_width: number | null;
   sidebar_right_width: number | null;
   copy_as_markdown: boolean | null;
+  sidebar_group_by_repo: boolean | null;
 }
 
 export function onFolderChanged(cb: (folderId: string) => void): Promise<UnlistenFn> {

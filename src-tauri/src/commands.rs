@@ -35,6 +35,37 @@ pub fn list_folders(registry: State<'_, SharedRegistry>) -> Vec<Folder> {
     registry.folders()
 }
 
+#[derive(serde::Serialize)]
+pub struct AnnotatedFolder {
+    #[serde(flatten)]
+    pub folder: Folder,
+    pub repo_root: Option<String>,
+    pub repo_name: Option<String>,
+}
+
+#[tauri::command]
+pub fn list_folders_grouped(registry: State<'_, SharedRegistry>) -> Vec<AnnotatedFolder> {
+    registry
+        .folders()
+        .into_iter()
+        .map(|f| {
+            let repo_root =
+                crate::folder::find_git_repo_root(std::path::Path::new(&f.path));
+            let repo_name = repo_root.as_ref().and_then(|r| {
+                std::path::Path::new(r)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .map(String::from)
+            });
+            AnnotatedFolder {
+                folder: f,
+                repo_root,
+                repo_name,
+            }
+        })
+        .collect()
+}
+
 #[tauri::command]
 pub fn add_folder(
     app: AppHandle,
@@ -113,6 +144,7 @@ pub struct PreferencesPayload {
     pub sidebar_left_width: Option<u32>,
     pub sidebar_right_width: Option<u32>,
     pub copy_as_markdown: Option<bool>,
+    pub sidebar_group_by_repo: Option<bool>,
 }
 
 #[tauri::command]
@@ -125,6 +157,7 @@ pub fn save_preferences(
         s.sidebar_left_width = prefs.sidebar_left_width;
         s.sidebar_right_width = prefs.sidebar_right_width;
         s.copy_as_markdown = prefs.copy_as_markdown;
+        s.sidebar_group_by_repo = prefs.sidebar_group_by_repo;
     })
 }
 
@@ -136,5 +169,6 @@ pub fn load_preferences(registry: State<'_, SharedRegistry>) -> PreferencesPaylo
         sidebar_left_width: s.sidebar_left_width,
         sidebar_right_width: s.sidebar_right_width,
         copy_as_markdown: s.copy_as_markdown,
+        sidebar_group_by_repo: s.sidebar_group_by_repo,
     }
 }
