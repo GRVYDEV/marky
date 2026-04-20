@@ -9,7 +9,36 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Extract changelog
+        id: changelog
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # Extract the section between ## [VERSION] and the next ## [ (or EOF)
+          BODY=$(awk "/^## \\[${VERSION}\\]/{found=1; next} /^## \\[/{if(found) exit} found{print}" CHANGELOG.md)
+          # Write to file to preserve newlines
+          echo "$BODY" > release_notes.md
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "Marky ${{ github.ref_name }}" \
+            --notes-file release_notes.md
+
+  build-macos:
+    needs: [create-release]
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,13 +71,9 @@ jobs:
           releaseDraft: false
           prerelease: false
 
-      - name: Extract version
-        id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-
       - name: Create tarball
         run: |
-          tar -czf "Marky_${{ steps.version.outputs.version }}_aarch64.tar.gz" \
+          tar -czf "Marky_${{ needs.create-release.outputs.version }}_aarch64.tar.gz" \
             -C src-tauri/target/release/bundle/macos \
             Marky.app
 
@@ -57,13 +82,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ github.ref_name }}" \
-            "Marky_${{ steps.version.outputs.version }}_aarch64.tar.gz" \
+            "Marky_${{ needs.create-release.outputs.version }}_aarch64.tar.gz" \
             --clobber
 
       - name: Compute SHA256
         id: sha
         run: |
-          sha=$(shasum -a 256 "Marky_${{ steps.version.outputs.version }}_aarch64.tar.gz" | awk '{print $1}')
+          sha=$(shasum -a 256 "Marky_${{ needs.create-release.outputs.version }}_aarch64.tar.gz" | awk '{print $1}')
           echo "sha256=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Update Homebrew tap
@@ -73,7 +98,7 @@ jobs:
           git clone https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/GRVYDEV/homebrew-tap.git tap
           cd tap
 
-          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${{ needs.create-release.outputs.version }}"
           SHA="${{ steps.sha.outputs.sha256 }}"
 
           sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/marky.rb
@@ -84,3 +109,70 @@ jobs:
           git add Casks/marky.rb
           git commit -m "Update marky to v${VERSION}"
           git push
+
+  build-linux:
+    needs: [create-release]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            arch: amd64
+          - runner: ubuntu-22.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Build Tauri app
+        run: pnpm tauri build
+
+      - name: Upload artifacts to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.create-release.outputs.version }}"
+          ARCH="${{ matrix.arch }}"
+
+          # Upload .deb
+          DEB=$(find src-tauri/target/release/bundle/deb -name "*.deb" | head -1)
+          if [ -n "$DEB" ]; then
+            DEST="marky_${VERSION}_${ARCH}.deb"
+            cp "$DEB" "$DEST"
+            gh release upload "${{ github.ref_name }}" "$DEST" --clobber
+          fi
+
+          # Upload AppImage
+          APPIMAGE=$(find src-tauri/target/release/bundle/appimage -name "*.AppImage" | head -1)
+          if [ -n "$APPIMAGE" ]; then
+            DEST="Marky_${VERSION}_${ARCH}.AppImage"
+            cp "$APPIMAGE" "$DEST"
+            gh release upload "${{ github.ref_name }}" "$DEST" --clobber
+          fi
