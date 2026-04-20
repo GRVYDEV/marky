@@ -49,6 +49,10 @@ export function onFolderChanged(cb: (folderId: string) => void): Promise<Unliste
   return listen<string>("folder://changed", (e) => cb(e.payload));
 }
 
+export function onFileChanged(cb: (paths: string[]) => void): Promise<UnlistenFn> {
+  return listen<string[]>("file://changed", (e) => cb(e.payload));
+}
+
 export function onCliTarget(cb: (t: InitialTarget) => void): Promise<UnlistenFn> {
   return listen<InitialTarget>("cli://target", (e) => cb(e.payload));
 }

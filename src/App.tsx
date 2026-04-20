@@ -8,7 +8,7 @@ import { Pane } from "@/components/Pane";
 import { TableOfContents } from "@/components/TableOfContents";
 import { Toolbar } from "@/components/Toolbar";
 import { CommandPalette } from "@/components/CommandPalette";
-import { tauri, onCliTarget, onFolderChanged, type Folder } from "@/lib/tauri";
+import { tauri, onCliTarget, onFolderChanged, onFileChanged, type Folder } from "@/lib/tauri";
 import {
   createInitialState,
   reduce,
@@ -82,6 +82,25 @@ function AppShell() {
       off.then((fn) => fn());
     };
   }, [refreshFolders]);
+
+  // Re-read open files when they change on disk.
+  useEffect(() => {
+    const off = onFileChanged(async (paths) => {
+      for (const tab of Object.values(state.tabs)) {
+        if (tab.filePath && paths.includes(tab.filePath)) {
+          try {
+            const text = await tauri.readFile(tab.filePath);
+            dispatch({ type: "UPDATE_TAB_SOURCE", tabId: tab.id, source: text });
+          } catch {
+            // File may have been deleted; ignore
+          }
+        }
+      }
+    });
+    return () => {
+      off.then((fn) => fn());
+    };
+  }, [state.tabs]);
 
   // CLI re-target via single-instance.
   useEffect(() => {
