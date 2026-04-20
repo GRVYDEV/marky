@@ -23,6 +23,14 @@ pub struct Settings {
     pub recent_files: Vec<String>,
     #[serde(default)]
     pub theme: Option<String>,
+    #[serde(default)]
+    pub zoom: Option<f64>,
+    #[serde(default)]
+    pub sidebar_left_width: Option<u32>,
+    #[serde(default)]
+    pub sidebar_right_width: Option<u32>,
+    #[serde(default)]
+    pub copy_as_markdown: Option<bool>,
 }
 
 const RECENT_LIMIT: usize = 20;

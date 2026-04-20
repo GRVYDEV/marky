@@ -43,7 +43,17 @@ export const tauri = {
     invoke<SearchResult[]>("search_files", { args: { query, limit } }),
   getRecentFiles: () => invoke<string[]>("get_recent_files"),
   saveTheme: (theme: string) => invoke<void>("save_theme", { theme }),
+  savePreferences: (prefs: PreferencesPayload) =>
+    invoke<void>("save_preferences", { prefs }),
+  loadPreferences: () => invoke<PreferencesPayload>("load_preferences"),
 };
+
+export interface PreferencesPayload {
+  zoom: number | null;
+  sidebar_left_width: number | null;
+  sidebar_right_width: number | null;
+  copy_as_markdown: boolean | null;
+}
 
 export function onFolderChanged(cb: (folderId: string) => void): Promise<UnlistenFn> {
   return listen<string>("folder://changed", (e) => cb(e.payload));

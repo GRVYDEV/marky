@@ -2,7 +2,7 @@
 
 .markdown-body {
   @apply text-foreground leading-7;
-  font-size: 15px;
+  font-size: 0.9375rem;
   max-width: 860px;
   margin: 0 auto;
   padding: 2rem 2.5rem 6rem;

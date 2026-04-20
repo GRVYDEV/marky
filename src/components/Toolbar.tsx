@@ -13,7 +13,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
-import { Search, Sun, Moon, Monitor, FileText, SplitSquareHorizontal, SplitSquareVertical, X, Settings } from "lucide-react";
+import { Search, Sun, Moon, Monitor, FileText, SplitSquareHorizontal, SplitSquareVertical, X, Settings, Minus, Plus } from "lucide-react";
 import { useTheme, type Theme } from "@/lib/theme";
 import { usePreferences } from "@/lib/preferences";
 import type { SplitDirection } from "@/lib/workspace";
@@ -29,7 +29,7 @@ interface Props {
 
 export function Toolbar({ filePath, onOpenFile, onSplit, onCloseSplit, isSplit, onFind }: Props) {
   const { theme, setTheme } = useTheme();
-  const { copyAsMarkdown, setCopyAsMarkdown } = usePreferences();
+  const { copyAsMarkdown, setCopyAsMarkdown, zoom, zoomIn, zoomOut, zoomReset } = usePreferences();
   const ThemeIcon = theme === "light" ? Sun : theme === "dark" ? Moon : Monitor;
 
   return (
@@ -101,6 +101,35 @@ export function Toolbar({ filePath, onOpenFile, onSplit, onCloseSplit, isSplit, 
             >
               Copy as Markdown
             </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Text Size</DropdownMenuLabel>
+            <div className="flex items-center gap-1 px-2 pb-1.5">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-6 w-6"
+                onClick={zoomOut}
+                disabled={zoom <= 0.7}
+              >
+                <Minus className="h-3 w-3" />
+              </Button>
+              <button
+                onClick={zoomReset}
+                className="min-w-[3rem] rounded px-1 text-center text-xs text-foreground hover:bg-accent"
+                title="Reset to 100%"
+              >
+                {Math.round(zoom * 100)}%
+              </button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-6 w-6"
+                onClick={zoomIn}
+                disabled={zoom >= 1.6}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
             <DropdownMenuSeparator />
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>

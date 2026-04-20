@@ -123,6 +123,8 @@ pub fn run() {
             commands::search_files,
             commands::get_recent_files,
             commands::save_theme,
+            commands::save_preferences,
+            commands::load_preferences,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

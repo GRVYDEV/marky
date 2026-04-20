@@ -70,7 +70,7 @@ export function FolderSidebar({ activePath, onOpenFile, onOpenPalette, refreshNo
   };
 
   return (
-    <div className="flex h-full w-64 shrink-0 flex-col border-r bg-card">
+    <div className="flex h-full w-full shrink-0 flex-col border-r bg-card">
       <div className="px-2 pt-2">
         <button
           type="button"

@@ -106,3 +106,35 @@ pub fn get_recent_files(registry: State<'_, SharedRegistry>) -> Vec<String> {
 pub fn save_theme(theme: String, registry: State<'_, SharedRegistry>) -> AppResult<()> {
     registry.save_with(&data_dir(), |s| s.theme = Some(theme))
 }
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct PreferencesPayload {
+    pub zoom: Option<f64>,
+    pub sidebar_left_width: Option<u32>,
+    pub sidebar_right_width: Option<u32>,
+    pub copy_as_markdown: Option<bool>,
+}
+
+#[tauri::command]
+pub fn save_preferences(
+    prefs: PreferencesPayload,
+    registry: State<'_, SharedRegistry>,
+) -> AppResult<()> {
+    registry.save_with(&data_dir(), |s| {
+        s.zoom = prefs.zoom;
+        s.sidebar_left_width = prefs.sidebar_left_width;
+        s.sidebar_right_width = prefs.sidebar_right_width;
+        s.copy_as_markdown = prefs.copy_as_markdown;
+    })
+}
+
+#[tauri::command]
+pub fn load_preferences(registry: State<'_, SharedRegistry>) -> PreferencesPayload {
+    let s = registry.settings();
+    PreferencesPayload {
+        zoom: s.zoom,
+        sidebar_left_width: s.sidebar_left_width,
+        sidebar_right_width: s.sidebar_right_width,
+        copy_as_markdown: s.copy_as_markdown,
+    }
+}

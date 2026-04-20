@@ -19,9 +19,13 @@ import {
   SplitSquareVertical,
   X,
   FolderOpen,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
 } from "lucide-react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useTheme, type Theme } from "@/lib/theme";
+import { usePreferences } from "@/lib/preferences";
 import type { SplitDirection } from "@/lib/workspace";
 
 interface Props {
@@ -48,6 +52,7 @@ export function CommandPalette({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const { setTheme } = useTheme();
+  const { zoomIn, zoomOut, zoomReset } = usePreferences();
 
   useEffect(() => {
     if (!open) {
@@ -141,6 +146,18 @@ export function CommandPalette({
               <CommandItem onSelect={() => setAppTheme("system")}>
                 <Monitor className="mr-2 h-4 w-4" />
                 Theme: System
+              </CommandItem>
+              <CommandItem onSelect={() => { zoomIn(); onOpenChange(false); }}>
+                <ZoomIn className="mr-2 h-4 w-4" />
+                Zoom In
+              </CommandItem>
+              <CommandItem onSelect={() => { zoomOut(); onOpenChange(false); }}>
+                <ZoomOut className="mr-2 h-4 w-4" />
+                Zoom Out
+              </CommandItem>
+              <CommandItem onSelect={() => { zoomReset(); onOpenChange(false); }}>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Reset Zoom
               </CommandItem>
             </CommandGroup>
             {folders.length > 0 && (

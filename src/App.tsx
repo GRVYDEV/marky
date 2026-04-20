@@ -2,7 +2,8 @@ import { useEffect, useReducer, useState, useCallback, useRef } from "react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { ThemeProvider } from "@/lib/theme";
-import { PreferencesProvider } from "@/lib/preferences";
+import { PreferencesProvider, usePreferences } from "@/lib/preferences";
+import { ResizeHandle } from "@/components/ResizeHandle";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { FolderSidebar } from "@/components/FolderSidebar";
 import { Pane } from "@/components/Pane";
@@ -44,6 +45,11 @@ function AppShell() {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [sidebarRefresh, setSidebarRefresh] = useState(0);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const {
+    zoomIn, zoomOut, zoomReset,
+    sidebarLeftWidth, sidebarRightWidth,
+    setSidebarWidth, resetSidebarWidth,
+  } = usePreferences();
 
   const activeTab = getActiveTab(state);
   const activePane = getActivePane(state);
@@ -155,11 +161,20 @@ function AppShell() {
         e.preventDefault();
         const tabId = activePane.activeTabId;
         if (tabId) dispatch({ type: "CLOSE_TAB", tabId, paneId: activePane.id });
+      } else if (meta && (e.key === "=" || e.key === "+")) {
+        e.preventDefault();
+        zoomIn();
+      } else if (meta && e.key === "-") {
+        e.preventDefault();
+        zoomOut();
+      } else if (meta && k === "0") {
+        e.preventDefault();
+        zoomReset();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [state.activePaneId, activePane.activeTabId, activePane.id]);
+  }, [state.activePaneId, activePane.activeTabId, activePane.id, zoomIn, zoomOut, zoomReset]);
 
   // File drop opens as new tab.
   useEffect(() => {
@@ -210,7 +225,7 @@ function AppShell() {
 
   return (
     <div className="flex h-full">
-      <div ref={sidebarRef} className="flex h-full min-h-0">
+      <div ref={sidebarRef} className="flex h-full min-h-0 shrink-0" style={{ width: sidebarLeftWidth }}>
         <FolderSidebar
           activePath={activeTab?.filePath}
           onOpenFile={openFile}
@@ -218,6 +233,11 @@ function AppShell() {
           refreshNonce={sidebarRefresh}
         />
       </div>
+      <ResizeHandle
+        side="left"
+        onResize={(w) => setSidebarWidth("left", w)}
+        onReset={() => resetSidebarWidth("left")}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
         <Toolbar
           filePath={activeTab?.filePath}
@@ -251,9 +271,17 @@ function AppShell() {
             </div>
           </main>
           {!isSplit && (
-            <aside className="hidden w-56 shrink-0 border-l bg-card/30 lg:block">
-              <TableOfContents source={activeTab?.source ?? ""} />
-            </aside>
+            <>
+              <ResizeHandle
+                side="right"
+                onResize={(w) => setSidebarWidth("right", w)}
+                onReset={() => resetSidebarWidth("right")}
+                className="hidden lg:flex"
+              />
+              <aside className="hidden shrink-0 border-l bg-card/30 lg:block" style={{ width: sidebarRightWidth }}>
+                <TableOfContents source={activeTab?.source ?? ""} />
+              </aside>
+            </>
           )}
         </div>
       </div>
