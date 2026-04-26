@@ -35,6 +35,7 @@
     "markdown-it": "^14.1.0",
     "markdown-it-anchor": "^9.2.0",
     "markdown-it-footnote": "^4.0.0",
+    "markdown-it-front-matter": "^0.2.4",
     "markdown-it-task-lists": "^2.1.1",
     "mermaid": "^11.4.1",
     "radix-ui": "^1.4.3",

@@ -63,6 +63,34 @@ describe("renderMarkdown", () => {
     const html = renderMarkdown("> a quote");
     expect(html).toContain("<blockquote>");
   });
+
+  it("strips YAML front matter at the top of the document", () => {
+    const md = `---\ntitle: Hello\nauthor: someone\ndraft: false\n---\n\n# Hello\n\nFirst paragraph.\n`;
+    const html = renderMarkdown(md);
+    expect(html).not.toContain("title: Hello");
+    expect(html).not.toContain("author: someone");
+    expect(html).not.toContain("draft: false");
+    expect(html).toContain("Hello");
+    expect(html).toContain("First paragraph.");
+  });
+
+  it("does not strip a thematic break that is not front matter", () => {
+    const md = `# Title\n\nBefore.\n\n---\n\nAfter.\n`;
+    const html = renderMarkdown(md);
+    expect(html).toContain("<hr");
+    expect(html).toContain("Before.");
+    expect(html).toContain("After.");
+  });
+
+  it("does not collapse a YAML block in the body into a setext heading", () => {
+    // Front matter only applies at the very top. A `---`-bracketed block
+    // mid-document remains regular CommonMark (thematic break + paragraph +
+    // setext heading), which is the long-standing behaviour we are not changing.
+    const md = `# Title\n\nIntro.\n\n---\nfoo: bar\n---\n`;
+    const html = renderMarkdown(md);
+    // The mid-document block must NOT be silently swallowed.
+    expect(html).toContain("foo: bar");
+  });
 });
 
 describe("extractHeadings", () => {
