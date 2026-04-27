@@ -2,6 +2,7 @@ import MarkdownIt from "markdown-it";
 import anchor from "markdown-it-anchor";
 import footnote from "markdown-it-footnote";
 import taskLists from "markdown-it-task-lists";
+import frontMatter from "markdown-it-front-matter";
 import DOMPurify from "dompurify";
 
 export interface ParsedHeading {
@@ -33,6 +34,16 @@ md.use(anchor, {
 });
 md.use(footnote);
 md.use(taskLists, { enabled: true, label: false });
+
+// Strip YAML front matter so files written for static-site generators,
+// Obsidian, MDX, or spec corpora don't render as a giant setext heading
+// at the top of the document. Without this, a leading `---\n...key: value\n---`
+// block is parsed as: thematic break + paragraph + setext H2 underline.
+// We capture the front matter and discard it; future work could expose the
+// captured value for metadata display.
+md.use(frontMatter, () => {
+  // intentionally empty — front matter is not rendered
+});
 
 // Inject data-source-map attributes on block-level tokens so the copy handler
 // can map rendered DOM selections back to original source lines.
