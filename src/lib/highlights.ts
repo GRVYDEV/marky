@@ -30,6 +30,11 @@ export interface Highlight {
   occurrence: number;
   section: string;
   createdAt: string;
+  /**
+   * Optional per-item annotation. Surfaces in the panel below the passage
+   * and is included on its own `Note:` line in the agent-export format.
+   */
+  note?: string;
 }
 
 export interface HighlightsByPath {
@@ -199,6 +204,7 @@ export function formatItem(h: Highlight): string {
   ];
   if (h.section) lines.push(`Section: ${h.section}`);
   lines.push(`Timestamp: ${fmtTime(h.createdAt)}`);
+  if (h.note && h.note.trim()) lines.push(`Note: ${h.note.trim()}`);
   return lines.join("\n");
 }
 
@@ -224,6 +230,7 @@ export function formatFile(filePath: string, highlights: Highlight[]): string {
       out.push(blockquote(h.passage));
       if (h.section) out.push(`Section: ${h.section}`);
       out.push(`Timestamp: ${fmtTime(h.createdAt)}`);
+      if (h.note && h.note.trim()) out.push(`Note: ${h.note.trim()}`);
       out.push("");
     }
   }
@@ -248,6 +255,7 @@ export function formatList(
     out.push(blockquote(h.passage));
     if (h.section) out.push(`Section: ${h.section}`);
     out.push(`Timestamp: ${fmtTime(h.createdAt)}`);
+    if (h.note && h.note.trim()) out.push(`Note: ${h.note.trim()}`);
     out.push("");
   }
   return out.join("\n").trimEnd() + "\n";

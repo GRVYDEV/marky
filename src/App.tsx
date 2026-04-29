@@ -4,6 +4,7 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { ThemeProvider } from "@/lib/theme";
 import { PreferencesProvider, usePreferences } from "@/lib/preferences";
 import { HighlightsProvider, useHighlights } from "@/lib/highlightsStore";
+import { NotificationsProvider, useNotify } from "@/lib/notifications";
 import { ResizeHandle } from "@/components/ResizeHandle";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { FolderSidebar } from "@/components/FolderSidebar";
@@ -58,8 +59,11 @@ function AppShell() {
     activeColour,
     setActiveColour,
     byFile: highlightsByFile,
+    addHighlight,
     removeHighlight,
+    updateHighlight,
   } = useHighlights();
+  const { notify } = useNotify();
 
   const activeTab = getActiveTab(state);
   const activePane = getActivePane(state);
@@ -296,23 +300,38 @@ function AppShell() {
               </aside>
             </>
           )}
-          {highlightsPanelOpen && (
-            <HighlightsPanel
-              filePath={activeTab?.filePath}
-              highlights={activeTab?.filePath ? highlightsByFile[activeTab.filePath] ?? [] : []}
-              activeColour={activeColour}
-              onSetActive={setActiveColour}
-              onClose={() => setHighlightsPanelOpen(false)}
-              onJump={(id) => {
-                document
-                  .querySelector("article.markdown-body")
-                  ?.dispatchEvent(new CustomEvent("marky:scroll-to-highlight", { detail: id }));
-              }}
-              onRemove={(id) => {
-                if (activeTab?.filePath) removeHighlight(activeTab.filePath, id);
-              }}
-            />
-          )}
+          {highlightsPanelOpen && (() => {
+            const panelKey = activeTab ? activeTab.filePath ?? ":welcome" : undefined;
+            return (
+              <HighlightsPanel
+                filePath={activeTab?.filePath ?? (activeTab ? "(welcome)" : undefined)}
+                highlights={panelKey ? highlightsByFile[panelKey] ?? [] : []}
+                activeColour={activeColour}
+                onSetActive={setActiveColour}
+                onClose={() => setHighlightsPanelOpen(false)}
+                onJump={(id) => {
+                  document
+                    .querySelector("article.markdown-body")
+                    ?.dispatchEvent(new CustomEvent("marky:scroll-to-highlight", { detail: id }));
+                }}
+                onRemove={(id) => {
+                  if (!panelKey) return;
+                  const items = highlightsByFile[panelKey] ?? [];
+                  const removed = items.find((h) => h.id === id);
+                  removeHighlight(panelKey, id);
+                  if (removed) {
+                    notify("Highlight deleted", {
+                      duration: 5000,
+                      action: { label: "Undo", onClick: () => addHighlight(removed) },
+                    });
+                  }
+                }}
+                onUpdateNote={(id, note) => {
+                  if (panelKey) updateHighlight(panelKey, id, { note });
+                }}
+              />
+            );
+          })()}
         </div>
       </div>
       <CommandPalette
@@ -338,11 +357,13 @@ export default function App() {
   return (
     <ThemeProvider>
       <PreferencesProvider>
-        <HighlightsProvider>
-          <TooltipProvider delayDuration={300}>
-            <AppShell />
-          </TooltipProvider>
-        </HighlightsProvider>
+        <NotificationsProvider>
+          <HighlightsProvider>
+            <TooltipProvider delayDuration={300}>
+              <AppShell />
+            </TooltipProvider>
+          </HighlightsProvider>
+        </NotificationsProvider>
       </PreferencesProvider>
     </ThemeProvider>
   );

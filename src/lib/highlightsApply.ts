@@ -185,3 +185,49 @@ export function scrollHighlightIntoView(container: HTMLElement, id: string): voi
   );
   if (span) span.scrollIntoView({ block: "center", behavior: "smooth" });
 }
+
+/**
+ * If `node` (or any ancestor below `container`) is a highlight wrapper span,
+ * return its id. Used to map click / keydown targets back to a highlight.
+ */
+export function highlightIdAt(node: Node, container: HTMLElement): string | null {
+  let cursor: Node | null = node;
+  while (cursor && cursor !== container) {
+    if (
+      cursor instanceof HTMLElement &&
+      cursor.classList.contains(HIGHLIGHT_CLASS)
+    ) {
+      return cursor.getAttribute(ID_ATTR);
+    }
+    cursor = cursor.parentNode;
+  }
+  return null;
+}
+
+/**
+ * Bounding rect of the highlight identified by `id`. Returns null if the
+ * highlight isn't currently rendered (orphaned).
+ */
+export function highlightRect(container: HTMLElement, id: string): DOMRect | null {
+  const span = container.querySelector<HTMLSpanElement>(
+    `span.${HIGHLIGHT_CLASS}[${ID_ATTR}="${CSS.escape(id)}"]`,
+  );
+  return span ? span.getBoundingClientRect() : null;
+}
+
+/**
+ * Toggle the visual "edit-active" outline on a highlight by id. Pass null
+ * to clear all outlines.
+ */
+export function setEditActive(container: HTMLElement, id: string | null): void {
+  const previous = container.querySelectorAll<HTMLSpanElement>(
+    `span.${HIGHLIGHT_CLASS}[data-edit-active="true"]`,
+  );
+  for (const span of Array.from(previous)) span.removeAttribute("data-edit-active");
+  if (id) {
+    const target = container.querySelector<HTMLSpanElement>(
+      `span.${HIGHLIGHT_CLASS}[${ID_ATTR}="${CSS.escape(id)}"]`,
+    );
+    if (target) target.setAttribute("data-edit-active", "true");
+  }
+}

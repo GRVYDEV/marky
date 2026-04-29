@@ -16,6 +16,7 @@ interface Ctx {
   panelOpen: boolean;
   setPanelOpen: (v: boolean) => void;
   addHighlight: (h: Highlight) => void;
+  updateHighlight: (filePath: string, id: string, patch: Partial<Highlight>) => void;
   removeHighlight: (filePath: string, id: string) => void;
   clearFile: (filePath: string) => void;
 }
@@ -50,6 +51,7 @@ function fromPayload(p: HighlightPayload): Highlight {
     occurrence: p.occurrence,
     section: p.section,
     createdAt: p.createdAt,
+    note: p.note,
   };
 }
 
@@ -99,6 +101,19 @@ export function HighlightsProvider({ children }: { children: React.ReactNode }) 
     [persistFile],
   );
 
+  const updateHighlight = React.useCallback(
+    (filePath: string, id: string, patch: Partial<Highlight>) => {
+      setByFile((prev) => {
+        const items = (prev[filePath] ?? []).map((h) =>
+          h.id === id ? { ...h, ...patch } : h,
+        );
+        persistFile(filePath, items);
+        return { ...prev, [filePath]: items };
+      });
+    },
+    [persistFile],
+  );
+
   const removeHighlight = React.useCallback(
     (filePath: string, id: string) => {
       setByFile((prev) => {
@@ -134,10 +149,11 @@ export function HighlightsProvider({ children }: { children: React.ReactNode }) 
       panelOpen,
       setPanelOpen,
       addHighlight,
+      updateHighlight,
       removeHighlight,
       clearFile,
     }),
-    [activeColour, byFile, panelOpen, addHighlight, removeHighlight, clearFile],
+    [activeColour, byFile, panelOpen, addHighlight, updateHighlight, removeHighlight, clearFile],
   );
 
   return <HighlightsContext.Provider value={value}>{children}</HighlightsContext.Provider>;

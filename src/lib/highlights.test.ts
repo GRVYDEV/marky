@@ -170,6 +170,19 @@ describe("formatItem", () => {
     h.section = "";
     expect(formatItem(h)).not.toContain("Section:");
   });
+
+  it("emits a Note: line only when the highlight has an annotation", () => {
+    expect(formatItem(h)).not.toContain("Note:");
+    h.note = "needs a primary source";
+    expect(formatItem(h)).toContain("Note: needs a primary source");
+  });
+
+  it("trims whitespace and skips empty notes", () => {
+    h.note = "   ";
+    expect(formatItem(h)).not.toContain("Note:");
+    h.note = "  real ";
+    expect(formatItem(h)).toContain("Note: real");
+  });
 });
 
 describe("formatList", () => {
@@ -278,5 +291,37 @@ describe("formatFile", () => {
 
   it("returns empty string for no highlights", () => {
     expect(formatFile("/a.md", [])).toBe("");
+  });
+
+  it("emits per-item Note: lines when highlights are annotated", () => {
+    const items: Highlight[] = [
+      {
+        id: "1",
+        filePath: "/a.md",
+        colour: "yellow",
+        sourceStartLine: 0,
+        sourceEndLine: 1,
+        passage: "alpha",
+        occurrence: 0,
+        section: "",
+        createdAt: "2026-04-29T00:00:00.000Z",
+        note: "rewrite this sentence",
+      },
+      {
+        id: "2",
+        filePath: "/a.md",
+        colour: "yellow",
+        sourceStartLine: 2,
+        sourceEndLine: 3,
+        passage: "beta",
+        occurrence: 0,
+        section: "",
+        createdAt: "2026-04-29T00:00:00.000Z",
+      },
+    ];
+    const out = formatFile("/a.md", items);
+    expect(out).toContain("Note: rewrite this sentence");
+    // Item with no note doesn't emit a Note: line.
+    expect(out.match(/Note:/g)).toHaveLength(1);
   });
 });

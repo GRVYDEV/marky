@@ -28,6 +28,10 @@ pub struct Highlight {
     pub section: String,
     #[serde(rename = "createdAt")]
     pub created_at: String,
+    /// Optional per-item annotation. Older `highlights.json` files written
+    /// before annotations existed deserialize cleanly via `default`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,6 +86,7 @@ mod tests {
             occurrence: 0,
             section: "".into(),
             created_at: "2026-04-29T00:00:00.000Z".into(),
+            note: None,
         }
     }
 
@@ -139,5 +144,29 @@ mod tests {
         assert!(raw.contains("\"sourceStartLine\""));
         assert!(raw.contains("\"sourceEndLine\""));
         assert!(raw.contains("\"createdAt\""));
+    }
+
+    #[test]
+    fn loads_legacy_file_without_note_field() {
+        // A highlights.json written before `note` existed must still load.
+        let dir = tempdir().unwrap();
+        let raw = r#"{"version":1,"files":{"/a.md":[{"id":"1","filePath":"/a.md","colour":"yellow","sourceStartLine":0,"sourceEndLine":1,"passage":"p","occurrence":0,"section":"","createdAt":"2026-04-29T00:00:00.000Z"}]}}"#;
+        std::fs::write(dir.path().join(FILE_NAME), raw).unwrap();
+        let loaded = HighlightsFile::load(dir.path()).unwrap();
+        let items = loaded.files.get("/a.md").unwrap();
+        assert_eq!(items.len(), 1);
+        assert!(items[0].note.is_none());
+    }
+
+    #[test]
+    fn omits_note_field_in_json_when_absent() {
+        let dir = tempdir().unwrap();
+        let mut f = HighlightsFile::default();
+        f.files
+            .insert("/a.md".into(), vec![h("1", "/a.md", "yellow")]);
+        f.save(dir.path()).unwrap();
+        let raw = std::fs::read_to_string(dir.path().join(FILE_NAME)).unwrap();
+        // skip_serializing_if keeps the JSON small for un-annotated highlights.
+        assert!(!raw.contains("\"note\""));
     }
 }

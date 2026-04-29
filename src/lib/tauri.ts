@@ -75,6 +75,7 @@ export interface HighlightPayload {
   occurrence: number;
   section: string;
   createdAt: string;
+  note?: string;
 }
 
 export interface HighlightsFilePayload {

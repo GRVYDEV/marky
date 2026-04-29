@@ -183,7 +183,20 @@
   padding: 0 1px;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
-  cursor: text;
+  cursor: pointer;
+  transition: outline-color 80ms ease-in-out;
+  outline: 1px solid transparent;
+  outline-offset: 1px;
+}
+.marky-highlight:hover {
+  outline-color: rgba(0, 0, 0, 0.45);
+}
+.dark .marky-highlight:hover {
+  outline-color: rgba(255, 255, 255, 0.55);
+}
+.marky-highlight[data-edit-active="true"] {
+  outline-color: var(--ring);
+  outline-width: 2px;
 }
 .marky-highlight[data-highlight-colour="yellow"] { background-color: var(--hl-yellow); color: #1a1a1a; }
 .marky-highlight[data-highlight-colour="orange"] { background-color: var(--hl-orange); color: #1a1a1a; }

@@ -10,6 +10,9 @@ import { useHighlights } from "@/lib/highlightsStore";
 import {
   applyAllHighlights,
   scrollHighlightIntoView,
+  highlightIdAt,
+  highlightRect,
+  setEditActive,
 } from "@/lib/highlightsApply";
 import {
   findEnclosingBlock,
@@ -18,6 +21,7 @@ import {
   newHighlightId,
   occurrenceIndexAt,
   formatItem,
+  HIGHLIGHT_COLOURS,
   type Highlight,
   type HighlightColour,
 } from "@/lib/highlights";
@@ -25,6 +29,11 @@ import {
   HighlightPopover,
   type HighlightPopoverState,
 } from "@/components/HighlightPopover";
+import {
+  HighlightEditPopover,
+  type HighlightEditPopoverState,
+} from "@/components/HighlightEditPopover";
+import { useNotify, copyWithFeedback } from "@/lib/notifications";
 
 interface Props {
   source: string;
@@ -41,9 +50,18 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
   const scrollerRef = React.useRef<HTMLDivElement>(null);
   const { resolved } = useTheme();
   const { copyAsMarkdown } = usePreferences();
-  const { byFile, activeColour, addHighlight } = useHighlights();
+  const {
+    byFile,
+    activeColour,
+    setActiveColour,
+    addHighlight,
+    updateHighlight,
+    removeHighlight,
+  } = useHighlights();
+  const { notify } = useNotify();
   const [html, setHtml] = React.useState("");
   const [popover, setPopover] = React.useState<HighlightPopoverState | null>(null);
+  const [editPopover, setEditPopover] = React.useState<HighlightEditPopoverState | null>(null);
   const pendingSelection = React.useRef<{
     block: HTMLElement;
     sourceStartLine: number;
@@ -52,7 +70,10 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
     occurrence: number;
     section: string;
   } | null>(null);
-  const fileHighlights = filePath ? byFile[filePath] ?? [] : [];
+  // Tabs without a real file (e.g. the Welcome screen) still get highlights;
+  // we key them under a synthetic path so they persist across sessions.
+  const storageKey = filePath ?? ":welcome";
+  const fileHighlights = byFile[storageKey] ?? [];
 
   // Keep onRendered fresh without making it a dep — otherwise every parent
   // re-render produces a new fn ref, retriggers the highlight effect, and the
@@ -114,12 +135,19 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
   }, [html, resolved]);
 
   // Re-apply highlights when the highlight list changes for the current file
-  // (e.g. user added/removed a highlight). Code-block replacement isn't
-  // happening on this path, so this is a cheap pass.
+  // (e.g. user added/removed a highlight). Save+restore the scroller's
+  // scrollTop around the DOM mutations: removing the wrapper span used as the
+  // browser's scroll anchor causes Chrome/Safari to jump (often to the top)
+  // when scroll-anchoring fails to find a fallback.
   React.useEffect(() => {
     const root = ref.current;
+    const scroller = scrollerRef.current;
     if (!root) return;
+    const savedScroll = scroller?.scrollTop ?? 0;
     applyAllHighlights(root as HTMLElement, fileHighlights);
+    if (scroller && scroller.scrollTop !== savedScroll) {
+      scroller.scrollTop = savedScroll;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileHighlights]);
 
@@ -149,7 +177,7 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
   // Detect text selections inside the article and surface the highlight popover.
   React.useEffect(() => {
     const root = ref.current;
-    if (!root || !filePath) return;
+    if (!root) return;
 
     const onMouseUp = () => {
       const sel = window.getSelection();
@@ -158,6 +186,9 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
         pendingSelection.current = null;
         return;
       }
+      // If the user dragged a new selection, it takes priority over any
+      // currently-open edit popover.
+      setEditPopover(null);
       const range = sel.getRangeAt(0);
       if (!root.contains(range.commonAncestorContainer)) {
         setPopover(null);
@@ -217,16 +248,121 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
 
     root.addEventListener("mouseup", onMouseUp);
     return () => root.removeEventListener("mouseup", onMouseUp);
-  }, [filePath, html]);
+  }, [html]);
+
+  // Click on an existing highlight → open the edit popover for it. Skipped
+  // when a non-collapsed selection is present (mouseup handled that path).
+  React.useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const onClick = (e: MouseEvent) => {
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed) return;
+      const id = highlightIdAt(e.target as Node, root as HTMLElement);
+      if (!id) return;
+      const items = byFile[storageKey] ?? [];
+      const highlight = items.find((h) => h.id === id);
+      if (!highlight) return;
+      const rect = highlightRect(root as HTMLElement, id);
+      if (!rect) return;
+      e.stopPropagation();
+      setPopover(null);
+      setEditPopover({
+        x: rect.left + rect.width / 2,
+        y: rect.bottom,
+        highlight,
+      });
+    };
+    root.addEventListener("click", onClick);
+    return () => root.removeEventListener("click", onClick);
+  }, [byFile, storageKey, html]);
+
+  // Keep the edit popover's data in sync if the underlying highlight changes
+  // (e.g. recolour, note edit) and follow it to its new position after the
+  // re-application pass.
+  React.useEffect(() => {
+    if (!editPopover) return;
+    const items = byFile[storageKey] ?? [];
+    const fresh = items.find((h) => h.id === editPopover.highlight.id);
+    if (!fresh) {
+      // Highlight was deleted by some other path.
+      setEditPopover(null);
+      return;
+    }
+    if (fresh !== editPopover.highlight) {
+      setEditPopover({ ...editPopover, highlight: fresh });
+    }
+  }, [byFile, storageKey, editPopover]);
+
+  // Visually mark the highlight currently being edited.
+  React.useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    setEditActive(root as HTMLElement, editPopover?.highlight.id ?? null);
+  }, [editPopover?.highlight.id, html]);
+
+  // Delete / Backspace deletes the highlight at the current selection or
+  // edit-popover target. Ignored when focus is in a form field.
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Delete" && e.key !== "Backspace") return;
+      const target = e.target as HTMLElement | null;
+      if (target && /input|textarea|select/i.test(target.tagName)) return;
+      const root = ref.current as HTMLElement | null;
+      if (!root) return;
+
+      // Prefer the edit popover's target if open.
+      let id: string | null = editPopover?.highlight.id ?? null;
+      if (!id) {
+        const sel = window.getSelection();
+        const node = sel && sel.rangeCount > 0 ? sel.getRangeAt(0).startContainer : null;
+        if (node && root.contains(node)) {
+          id = highlightIdAt(node, root);
+        }
+      }
+      if (!id) return;
+      const items = byFile[storageKey] ?? [];
+      const highlight = items.find((h) => h.id === id);
+      if (!highlight) return;
+      e.preventDefault();
+      removeHighlight(storageKey, id);
+      setEditPopover(null);
+      notify("Highlight deleted", {
+        duration: 5000,
+        action: { label: "Undo", onClick: () => addHighlight(highlight) },
+      });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editPopover, byFile, storageKey, removeHighlight, addHighlight, notify]);
+
+  // Cycle the active colour with ] / [ at any time (no popover required).
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && /input|textarea|select/i.test(target.tagName)) return;
+      if (e.key !== "]" && e.key !== "[") return;
+      const idx = HIGHLIGHT_COLOURS.indexOf(activeColour);
+      const next =
+        e.key === "]"
+          ? HIGHLIGHT_COLOURS[(idx + 1) % HIGHLIGHT_COLOURS.length]
+          : HIGHLIGHT_COLOURS[(idx - 1 + HIGHLIGHT_COLOURS.length) % HIGHLIGHT_COLOURS.length];
+      e.preventDefault();
+      setActiveColour(next);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activeColour, setActiveColour]);
 
   // Apply / Copy handlers for the popover.
   const onApply = React.useCallback(
-    (colour: HighlightColour) => {
+    (colour: HighlightColour, note?: string) => {
       const pending = pendingSelection.current;
-      if (!pending || !filePath) return;
+      if (!pending) return;
       const h: Highlight = {
         id: newHighlightId(),
-        filePath,
+        filePath: storageKey,
         colour,
         sourceStartLine: pending.sourceStartLine,
         sourceEndLine: pending.sourceEndLine,
@@ -234,21 +370,22 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
         occurrence: pending.occurrence,
         section: pending.section,
         createdAt: new Date().toISOString(),
+        note,
       };
       addHighlight(h);
       setPopover(null);
       pendingSelection.current = null;
       window.getSelection()?.removeAllRanges();
     },
-    [addHighlight, filePath],
+    [addHighlight, storageKey],
   );
 
   const onCopyForAgent = React.useCallback(async () => {
     const pending = pendingSelection.current;
-    if (!pending || !filePath) return;
+    if (!pending) return;
     const itemText = formatItem({
       id: "preview",
-      filePath,
+      filePath: filePath ?? "(welcome)",
       colour: activeColour,
       sourceStartLine: pending.sourceStartLine,
       sourceEndLine: pending.sourceEndLine,
@@ -257,20 +394,55 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
       section: pending.section,
       createdAt: new Date().toISOString(),
     });
-    try {
-      await navigator.clipboard.writeText(itemText);
-    } catch {
-      // ignore
-    }
-    setPopover(null);
-    pendingSelection.current = null;
-    window.getSelection()?.removeAllRanges();
-  }, [filePath, activeColour]);
+    await copyWithFeedback(itemText, notify);
+    // Keep the popover open briefly so the inline "Copied" flash on the
+    // Copy button is visible. User dismisses via Esc or outside-click.
+  }, [filePath, activeColour, notify]);
 
   const onDismissPopover = React.useCallback(() => {
     setPopover(null);
     pendingSelection.current = null;
   }, []);
+
+  // Edit-popover handlers.
+  const onRecolour = React.useCallback(
+    (id: string, colour: HighlightColour) => {
+      updateHighlight(storageKey, id, { colour });
+    },
+    [storageKey, updateHighlight],
+  );
+
+  const onUpdateNote = React.useCallback(
+    (id: string, note: string | undefined) => {
+      updateHighlight(storageKey, id, { note });
+    },
+    [storageKey, updateHighlight],
+  );
+
+  const onCopyExisting = React.useCallback(
+    async (h: Highlight) => {
+      const text = formatItem({ ...h, filePath: filePath ?? h.filePath });
+      await copyWithFeedback(text, notify);
+    },
+    [filePath, notify],
+  );
+
+  const onDeleteExisting = React.useCallback(
+    (id: string) => {
+      const items = byFile[storageKey] ?? [];
+      const highlight = items.find((h) => h.id === id);
+      if (!highlight) return;
+      removeHighlight(storageKey, id);
+      setEditPopover(null);
+      notify("Highlight deleted", {
+        duration: 5000,
+        action: { label: "Undo", onClick: () => addHighlight(highlight) },
+      });
+    },
+    [byFile, storageKey, removeHighlight, addHighlight, notify],
+  );
+
+  const onDismissEdit = React.useCallback(() => setEditPopover(null), []);
 
   // Custom event "marky:scroll-to-highlight" dispatched by the panel jumps to
   // the highlight with the given id. This avoids threading a ref handle up.
@@ -304,6 +476,14 @@ export function Viewer({ source, filePath, articleRef, onRendered }: Props) {
         onApply={onApply}
         onCopyForAgent={onCopyForAgent}
         onDismiss={onDismissPopover}
+      />
+      <HighlightEditPopover
+        state={editPopover}
+        onRecolour={onRecolour}
+        onUpdateNote={onUpdateNote}
+        onCopy={onCopyExisting}
+        onDelete={onDeleteExisting}
+        onDismiss={onDismissEdit}
       />
     </div>
   );
