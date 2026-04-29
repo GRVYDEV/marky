@@ -106,13 +106,16 @@ export function FolderSidebar({ activePath, onOpenFile, onOpenPalette, refreshNo
 
   const renderFolder = (f: AnnotatedFolder) => {
     const tree = trees[f.id];
-    const isCollapsed = collapsed[f.id];
+    // Default to collapsed when no explicit state has been set, so the
+    // sidebar opens quietly each session and the user expands what they
+    // want to scan.
+    const isCollapsed = collapsed[f.id] ?? true;
     return (
       <div key={f.id} id={`folder-${f.id}`} className="group/folder mb-1">
         <div className="flex items-center justify-between gap-1 rounded px-1 py-0.5 hover:bg-accent">
           <button
             type="button"
-            onClick={() => setCollapsed((c) => ({ ...c, [f.id]: !c[f.id] }))}
+            onClick={() => setCollapsed((c) => ({ ...c, [f.id]: !isCollapsed }))}
             className="flex flex-1 items-center gap-1 truncate text-left"
           >
             {isCollapsed ? (

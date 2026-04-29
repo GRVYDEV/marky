@@ -163,3 +163,50 @@
   font-size: 0.9em;
   @apply text-muted-foreground;
 }
+
+/*
+  Highlight palette. IBM colorblind-safe pastels; pairs distinguishable for
+  protanopia (red-green colour vision deficiency).
+  In dark mode we drop opacity so dark text remains readable; the swatch
+  border is added so swatches stay visible against the popover background.
+*/
+:root {
+  --hl-yellow: #ffe066;
+  --hl-orange: #ffb37a;
+  --hl-pink:   #f4a6c0;
+  --hl-blue:   #a4c8ff;
+  --hl-purple: #c9b6ff;
+}
+
+.marky-highlight {
+  border-radius: 2px;
+  padding: 0 1px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  cursor: pointer;
+  transition: outline-color 80ms ease-in-out;
+  outline: 1px solid transparent;
+  outline-offset: 1px;
+}
+.marky-highlight:hover {
+  outline-color: rgba(0, 0, 0, 0.45);
+}
+.dark .marky-highlight:hover {
+  outline-color: rgba(255, 255, 255, 0.55);
+}
+.marky-highlight[data-edit-active="true"] {
+  outline-color: var(--ring);
+  outline-width: 2px;
+}
+.marky-highlight[data-highlight-colour="yellow"] { background-color: var(--hl-yellow); color: #1a1a1a; }
+.marky-highlight[data-highlight-colour="orange"] { background-color: var(--hl-orange); color: #1a1a1a; }
+.marky-highlight[data-highlight-colour="pink"]   { background-color: var(--hl-pink);   color: #1a1a1a; }
+.marky-highlight[data-highlight-colour="blue"]   { background-color: var(--hl-blue);   color: #1a1a1a; }
+.marky-highlight[data-highlight-colour="purple"] { background-color: var(--hl-purple); color: #1a1a1a; }
+
+.marky-highlight-swatch[data-highlight-colour="yellow"] { background-color: var(--hl-yellow); }
+.marky-highlight-swatch[data-highlight-colour="orange"] { background-color: var(--hl-orange); }
+.marky-highlight-swatch[data-highlight-colour="pink"]   { background-color: var(--hl-pink); }
+.marky-highlight-swatch[data-highlight-colour="blue"]   { background-color: var(--hl-blue); }
+.marky-highlight-swatch[data-highlight-colour="purple"] { background-color: var(--hl-purple); }
+
