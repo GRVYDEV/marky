@@ -3,6 +3,7 @@ import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { ThemeProvider } from "@/lib/theme";
 import { PreferencesProvider, usePreferences } from "@/lib/preferences";
+import { HighlightsProvider, useHighlights } from "@/lib/highlightsStore";
 import { ResizeHandle } from "@/components/ResizeHandle";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { FolderSidebar } from "@/components/FolderSidebar";
@@ -10,6 +11,7 @@ import { Pane } from "@/components/Pane";
 import { TableOfContents } from "@/components/TableOfContents";
 import { Toolbar } from "@/components/Toolbar";
 import { CommandPalette } from "@/components/CommandPalette";
+import { HighlightsPanel } from "@/components/HighlightsPanel";
 import { tauri, onCliTarget, onFolderChanged, onFileChanged, type AnnotatedFolder } from "@/lib/tauri";
 import {
   createInitialState,
@@ -50,6 +52,14 @@ function AppShell() {
     sidebarLeftWidth, sidebarRightWidth,
     setSidebarWidth, resetSidebarWidth,
   } = usePreferences();
+  const {
+    panelOpen: highlightsPanelOpen,
+    setPanelOpen: setHighlightsPanelOpen,
+    activeColour,
+    setActiveColour,
+    byFile: highlightsByFile,
+    removeHighlight,
+  } = useHighlights();
 
   const activeTab = getActiveTab(state);
   const activePane = getActivePane(state);
@@ -246,6 +256,9 @@ function AppShell() {
           onCloseSplit={handleCloseSplit}
           isSplit={isSplit}
           onFind={() => setSearchPaneId(state.activePaneId)}
+          onToggleHighlights={() => setHighlightsPanelOpen(!highlightsPanelOpen)}
+          highlightsOpen={highlightsPanelOpen}
+          activeHighlightColour={activeColour}
         />
         <div className="flex min-h-0 flex-1">
           <main className="min-w-0 flex-1">
@@ -270,7 +283,7 @@ function AppShell() {
               ))}
             </div>
           </main>
-          {!isSplit && (
+          {!isSplit && !highlightsPanelOpen && (
             <>
               <ResizeHandle
                 side="right"
@@ -282,6 +295,23 @@ function AppShell() {
                 <TableOfContents source={activeTab?.source ?? ""} />
               </aside>
             </>
+          )}
+          {highlightsPanelOpen && (
+            <HighlightsPanel
+              filePath={activeTab?.filePath}
+              highlights={activeTab?.filePath ? highlightsByFile[activeTab.filePath] ?? [] : []}
+              activeColour={activeColour}
+              onSetActive={setActiveColour}
+              onClose={() => setHighlightsPanelOpen(false)}
+              onJump={(id) => {
+                document
+                  .querySelector("article.markdown-body")
+                  ?.dispatchEvent(new CustomEvent("marky:scroll-to-highlight", { detail: id }));
+              }}
+              onRemove={(id) => {
+                if (activeTab?.filePath) removeHighlight(activeTab.filePath, id);
+              }}
+            />
           )}
         </div>
       </div>
@@ -308,9 +338,11 @@ export default function App() {
   return (
     <ThemeProvider>
       <PreferencesProvider>
-        <TooltipProvider delayDuration={300}>
-          <AppShell />
-        </TooltipProvider>
+        <HighlightsProvider>
+          <TooltipProvider delayDuration={300}>
+            <AppShell />
+          </TooltipProvider>
+        </HighlightsProvider>
       </PreferencesProvider>
     </ThemeProvider>
   );

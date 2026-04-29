@@ -1,6 +1,7 @@
 use crate::cli::InitialTarget;
 use crate::error::{AppError, AppResult};
 use crate::folder::TreeNode;
+use crate::highlights::{Highlight, HighlightsFile};
 use crate::registry::SharedRegistry;
 use crate::search::{search, SearchResult};
 use crate::settings::{data_dir, Folder};
@@ -171,4 +172,27 @@ pub fn load_preferences(registry: State<'_, SharedRegistry>) -> PreferencesPaylo
         copy_as_markdown: s.copy_as_markdown,
         sidebar_group_by_repo: s.sidebar_group_by_repo,
     }
+}
+
+/// Load all highlights for all files. Frontend filters by file path.
+#[tauri::command]
+pub fn load_highlights() -> AppResult<HighlightsFile> {
+    HighlightsFile::load(&data_dir())
+}
+
+/// Replace the highlights for a single file path. Other files are untouched.
+/// Pass an empty Vec to clear highlights for the path.
+#[tauri::command]
+pub fn save_highlights_for_file(
+    file_path: String,
+    highlights: Vec<Highlight>,
+) -> AppResult<()> {
+    let dir = data_dir();
+    let mut store = HighlightsFile::load(&dir).unwrap_or_default();
+    if highlights.is_empty() {
+        store.files.remove(&file_path);
+    } else {
+        store.files.insert(file_path, highlights);
+    }
+    store.save(&dir)
 }

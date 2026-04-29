@@ -13,10 +13,12 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
-import { Search, Sun, Moon, Monitor, FileText, SplitSquareHorizontal, SplitSquareVertical, X, Settings, Minus, Plus } from "lucide-react";
+import { Search, Sun, Moon, Monitor, FileText, SplitSquareHorizontal, SplitSquareVertical, X, Settings, Minus, Plus, Highlighter } from "lucide-react";
 import { useTheme, type Theme } from "@/lib/theme";
 import { usePreferences } from "@/lib/preferences";
 import type { SplitDirection } from "@/lib/workspace";
+import type { HighlightColour } from "@/lib/highlights";
+import { cn } from "@/lib/utils";
 
 interface Props {
   filePath?: string;
@@ -25,9 +27,22 @@ interface Props {
   onCloseSplit: () => void;
   isSplit: boolean;
   onFind: () => void;
+  onToggleHighlights?: () => void;
+  highlightsOpen?: boolean;
+  activeHighlightColour?: HighlightColour;
 }
 
-export function Toolbar({ filePath, onOpenFile, onSplit, onCloseSplit, isSplit, onFind }: Props) {
+export function Toolbar({
+  filePath,
+  onOpenFile,
+  onSplit,
+  onCloseSplit,
+  isSplit,
+  onFind,
+  onToggleHighlights,
+  highlightsOpen,
+  activeHighlightColour,
+}: Props) {
   const { theme, setTheme } = useTheme();
   const { copyAsMarkdown, setCopyAsMarkdown, zoom, zoomIn, zoomOut, zoomReset } = usePreferences();
   const ThemeIcon = theme === "light" ? Sun : theme === "dark" ? Moon : Monitor;
@@ -44,6 +59,30 @@ export function Toolbar({ filePath, onOpenFile, onSplit, onCloseSplit, isSplit, 
           </TooltipTrigger>
           <TooltipContent>Find in document (⌘F)</TooltipContent>
         </Tooltip>
+        {onToggleHighlights && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={onToggleHighlights}
+                variant="ghost"
+                size="icon"
+                className={cn("relative h-7 w-7", highlightsOpen && "bg-accent")}
+              >
+                <Highlighter className="h-3.5 w-3.5" />
+                {activeHighlightColour && (
+                  <span
+                    aria-hidden
+                    className="marky-highlight-swatch absolute -bottom-0.5 right-1 h-1.5 w-1.5 rounded-sm border border-border/60"
+                    data-highlight-colour={activeHighlightColour}
+                  />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {highlightsOpen ? "Hide highlights" : "Show highlights"}
+            </TooltipContent>
+          </Tooltip>
+        )}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button onClick={onOpenFile} variant="ghost" size="icon" className="h-7 w-7">

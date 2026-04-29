@@ -52,6 +52,9 @@ export const tauri = {
   savePreferences: (prefs: PreferencesPayload) =>
     invoke<void>("save_preferences", { prefs }),
   loadPreferences: () => invoke<PreferencesPayload>("load_preferences"),
+  loadHighlights: () => invoke<HighlightsFilePayload>("load_highlights"),
+  saveHighlightsForFile: (filePath: string, highlights: HighlightPayload[]) =>
+    invoke<void>("save_highlights_for_file", { filePath, highlights }),
 };
 
 export interface PreferencesPayload {
@@ -60,6 +63,23 @@ export interface PreferencesPayload {
   sidebar_right_width: number | null;
   copy_as_markdown: boolean | null;
   sidebar_group_by_repo: boolean | null;
+}
+
+export interface HighlightPayload {
+  id: string;
+  filePath: string;
+  colour: string;
+  sourceStartLine: number;
+  sourceEndLine: number;
+  passage: string;
+  occurrence: number;
+  section: string;
+  createdAt: string;
+}
+
+export interface HighlightsFilePayload {
+  version: number;
+  files: Record<string, HighlightPayload[]>;
 }
 
 export function onFolderChanged(cb: (folderId: string) => void): Promise<UnlistenFn> {

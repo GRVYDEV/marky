@@ -3,6 +3,7 @@ mod commands;
 mod error;
 mod folder;
 mod fs;
+mod highlights;
 mod registry;
 mod search;
 mod settings;
@@ -126,6 +127,8 @@ pub fn run() {
             commands::save_theme,
             commands::save_preferences,
             commands::load_preferences,
+            commands::load_highlights,
+            commands::save_highlights_for_file,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
