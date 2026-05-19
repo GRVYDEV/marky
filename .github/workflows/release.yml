@@ -177,3 +177,52 @@ jobs:
             cp "$APPIMAGE" "$DEST"
             gh release upload "${{ github.ref_name }}" "$DEST" --clobber
           fi
+
+  build-windows:
+    needs: [create-release]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Build Tauri app
+        run: pnpm tauri build
+
+      - name: Upload artifacts to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.create-release.outputs.version }}"
+
+          # Upload NSIS installer (.exe)
+          NSIS=$(find src-tauri/target/release/bundle/nsis -name "*-setup.exe" | head -1)
+          if [ -n "$NSIS" ]; then
+            DEST="Marky_${VERSION}_x64-setup.exe"
+            cp "$NSIS" "$DEST"
+            gh release upload "${{ github.ref_name }}" "$DEST" --clobber
+          fi
+
+          # Upload MSI installer
+          MSI=$(find src-tauri/target/release/bundle/msi -name "*.msi" | head -1)
+          if [ -n "$MSI" ]; then
+            DEST="Marky_${VERSION}_x64.msi"
+            cp "$MSI" "$DEST"
+            gh release upload "${{ github.ref_name }}" "$DEST" --clobber
+          fi
