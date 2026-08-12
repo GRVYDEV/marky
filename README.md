@@ -35,6 +35,7 @@
         <li><a href="#homebrew-macos">Homebrew (macOS)</a></li>
         <li><a href="#ubuntu--debian">Ubuntu / Debian</a></li>
         <li><a href="#appimage-linux">AppImage (Linux)</a></li>
+        <li><a href="#arch-linux-aur">Arch Linux (AUR)</a></li>
         <li><a href="#from-source">From Source</a></li>
       </ul>
     </li>
@@ -101,6 +102,16 @@ Download the AppImage from the [latest release](https://github.com/GRVYDEV/marky
 curl -LO https://github.com/GRVYDEV/marky/releases/latest/download/Marky_0.1.2_amd64.AppImage
 chmod +x Marky_0.1.2_amd64.AppImage
 ./Marky_0.1.2_amd64.AppImage
+```
+
+### Arch Linux (AUR)
+
+On Arch Linux and Arch-based distributions, Marky is available on the [Arch User Repository](https://aur.archlinux.org/packages/marky-appimage) as `marky-appimage` for `x86_64` and `aarch64`.
+
+```bash
+yay -S marky-appimage
+# or
+paru -S marky-appimage
 ```
 
 ### From Source
