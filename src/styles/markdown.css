@@ -3,8 +3,9 @@
 .markdown-body {
   @apply text-foreground leading-7;
   font-size: 0.9375rem;
-  max-width: 860px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
   padding: 2rem 2.5rem 6rem;
 }
 
