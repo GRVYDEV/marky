@@ -7,6 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Native menu bar (File / Edit / View / Window / Help) with platform-gated accelerators
+- Markdown file associations (`.md` / `.markdown` / `.mdx`) so Marky can be the default viewer
+- PR check running `cargo test` on macOS and Linux
 - Adjustable text size — scales all text app-wide (sidebar, toolbar, command palette, markdown content) via Settings dropdown or Cmd+Plus/Cmd+Minus/Cmd+0
 - Resizable sidebars — drag the edge of the folder sidebar or table of contents to resize; double-click to reset to default
 - Copy contents as markdown
