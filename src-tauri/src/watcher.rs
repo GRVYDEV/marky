@@ -30,6 +30,7 @@ pub fn watch_folder(
         move |res: DebounceEventResult| {
             match res {
                 Ok(events) => {
+                    if events.is_empty() { return; }
                     reg_for_cb.refresh_folder(&id_for_cb);
                     let _ = app_for_cb.emit("folder://changed", &id_for_cb);
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { tauri, onFolderChanged, type AnnotatedFolder, type TreeNode } from "@/lib/tauri";
 import { usePreferences } from "@/lib/preferences";
@@ -75,19 +75,51 @@ export function FolderSidebar({ activePath, onOpenFile, onOpenPalette, refreshNo
     loadAll();
   }, [loadAll, refreshNonce]);
 
+  const debounceTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
   useEffect(() => {
-    const off = onFolderChanged(async (folderId) => {
-      try {
-        const tree = await tauri.readFolderTree(folderId);
-        setTrees((prev) => ({ ...prev, [folderId]: tree }));
-      } catch {
-        // ignore
-      }
-      const list = await tauri.listFoldersGrouped();
-      setFolders(list);
+    // Unlisten is async, so events can still arrive after cleanup runs;
+    // `cancelled` stops them from scheduling timers or committing state.
+    let cancelled = false;
+    // Monotonic request ids: a fetch only commits if no newer fetch for the
+    // same target has started since, so a slow older fetch can't clobber a
+    // newer result.
+    const treeEpochs = new Map<string, number>();
+    let listEpoch = 0;
+
+    const off = onFolderChanged((folderId) => {
+      if (cancelled) return;
+      const timers = debounceTimersRef.current;
+      const existing = timers.get(folderId);
+      if (existing) clearTimeout(existing);
+      const handle = setTimeout(async () => {
+        timers.delete(folderId);
+        const treeId = (treeEpochs.get(folderId) ?? 0) + 1;
+        treeEpochs.set(folderId, treeId);
+        try {
+          const tree = await tauri.readFolderTree(folderId);
+          if (!cancelled && treeEpochs.get(folderId) === treeId) {
+            setTrees((prev) => ({ ...prev, [folderId]: tree }));
+          }
+        } catch {
+          // unreadable folder
+        }
+        const listId = ++listEpoch;
+        try {
+          const list = await tauri.listFoldersGrouped();
+          if (!cancelled && listEpoch === listId) setFolders(list);
+        } catch {
+          // registry read failed; keep current list
+        }
+      }, 200);
+      timers.set(folderId, handle);
     });
     return () => {
+      cancelled = true;
       off.then((fn) => fn());
+      const timers = debounceTimersRef.current;
+      timers.forEach((handle) => clearTimeout(handle));
+      timers.clear();
     };
   }, []);
 
