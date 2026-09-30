@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { tauri, onFolderChanged, type AnnotatedFolder, type TreeNode } from "@/lib/tauri";
+import { pickAndAddFolder } from "@/lib/folders";
 import { usePreferences } from "@/lib/preferences";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -92,11 +92,8 @@ export function FolderSidebar({ activePath, onOpenFile, onOpenPalette, refreshNo
   }, []);
 
   const handleAdd = async () => {
-    const picked = await openDialog({ directory: true, multiple: false });
-    if (typeof picked === "string") {
-      await tauri.addFolder(picked);
-      await loadAll();
-    }
+    const folder = await pickAndAddFolder();
+    if (folder) await loadAll();
   };
 
   const handleRemove = async (id: string) => {

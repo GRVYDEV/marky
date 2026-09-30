@@ -3,6 +3,7 @@ mod commands;
 mod error;
 mod folder;
 mod fs;
+mod menu;
 mod registry;
 mod search;
 mod settings;
@@ -110,8 +111,14 @@ pub fn run() {
             app.manage(InitialTargetState(Mutex::new(initial_resolved)));
             app.manage(registry);
             app.manage(watchers);
+
+            let (menu, handles) = menu::build(app.handle())?;
+            app.set_menu(menu)?;
+            app.manage(handles);
+
             Ok(())
         })
+        .on_menu_event(menu::handle_event)
         .invoke_handler(tauri::generate_handler![
             commands::get_initial_target,
             commands::set_initial_target,

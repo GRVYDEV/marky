@@ -10,7 +10,16 @@ import { Pane } from "@/components/Pane";
 import { TableOfContents } from "@/components/TableOfContents";
 import { Toolbar } from "@/components/Toolbar";
 import { CommandPalette } from "@/components/CommandPalette";
-import { tauri, onCliTarget, onFolderChanged, onFileChanged, type AnnotatedFolder } from "@/lib/tauri";
+import {
+  tauri,
+  onCliTarget,
+  onFolderChanged,
+  onFileChanged,
+  onMenuAction,
+  type AnnotatedFolder,
+  type MenuAction,
+} from "@/lib/tauri";
+import { pickAndAddFolder } from "@/lib/folders";
 import {
   createInitialState,
   reduce,
@@ -140,42 +149,6 @@ function AppShell() {
     return pathToFolderId[p] ?? null;
   }
 
-  // Global keyboard shortcuts.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const meta = e.metaKey || e.ctrlKey;
-      const k = e.key.toLowerCase();
-      if (meta && k === "k") {
-        e.preventDefault();
-        setPaletteOpen((v) => !v);
-      } else if (meta && k === "o") {
-        e.preventDefault();
-        handlePickFile();
-      } else if (meta && k === "f") {
-        e.preventDefault();
-        setSearchPaneId(state.activePaneId);
-      } else if (meta && e.key === "\\") {
-        e.preventDefault();
-        dispatch({ type: "SPLIT", direction: e.shiftKey ? "horizontal" : "vertical" });
-      } else if (meta && k === "w") {
-        e.preventDefault();
-        const tabId = activePane.activeTabId;
-        if (tabId) dispatch({ type: "CLOSE_TAB", tabId, paneId: activePane.id });
-      } else if (meta && (e.key === "=" || e.key === "+")) {
-        e.preventDefault();
-        zoomIn();
-      } else if (meta && e.key === "-") {
-        e.preventDefault();
-        zoomOut();
-      } else if (meta && k === "0") {
-        e.preventDefault();
-        zoomReset();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [state.activePaneId, activePane.activeTabId, activePane.id, zoomIn, zoomOut, zoomReset]);
-
   // File drop opens as new tab.
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -205,6 +178,82 @@ function AppShell() {
       ?.querySelector(`#folder-${cssEscape(folderId)}`)
       ?.scrollIntoView({ block: "start" });
   };
+
+  // Route native menu actions. Kept in a ref (updated every render) so the
+  // listener below is registered exactly once and never sees stale state.
+  const menuHandlerRef = useRef<(action: MenuAction) => void>(() => {});
+  menuHandlerRef.current = async (action: MenuAction) => {
+    switch (action) {
+      case "open":
+        handlePickFile();
+        break;
+      case "open-folder": {
+        const folder = await pickAndAddFolder();
+        if (folder) refreshFolders();
+        break;
+      }
+      case "reload-file": {
+        if (activeTab?.filePath) {
+          try {
+            const text = await tauri.readFile(activeTab.filePath);
+            dispatch({ type: "UPDATE_TAB_SOURCE", tabId: activeTab.id, source: text });
+          } catch (err) {
+            console.error("failed to reload file", err);
+          }
+        }
+        break;
+      }
+      case "close-tab": {
+        const tabId = activePane.activeTabId;
+        if (tabId) dispatch({ type: "CLOSE_TAB", tabId, paneId: activePane.id });
+        break;
+      }
+      case "find":
+        setSearchPaneId(state.activePaneId);
+        break;
+      case "command-palette":
+        setPaletteOpen((v) => !v);
+        break;
+      case "split-right":
+        dispatch({ type: "SPLIT", direction: "vertical" });
+        break;
+      case "split-down":
+        dispatch({ type: "SPLIT", direction: "horizontal" });
+        break;
+      case "close-split":
+        handleCloseSplit();
+        break;
+      case "zoom-in":
+        zoomIn();
+        break;
+      case "zoom-out":
+        zoomOut();
+        break;
+      case "zoom-reset":
+        zoomReset();
+        break;
+      case "rescan-folder":
+      case "close-folder":
+        // TODO(#002)
+        break;
+      case "print":
+      case "reveal":
+      case "open-with":
+        // TODO(#005)
+        break;
+      case "export-html":
+      case "export-markdown":
+        // TODO(#006)
+        break;
+    }
+  };
+
+  useEffect(() => {
+    const off = onMenuAction((action) => menuHandlerRef.current(action));
+    return () => {
+      off.then((fn) => fn());
+    };
+  }, []);
 
   const renderPane = (paneId: string) => {
     const pane = state.panes.find((p) => p.id === paneId)!;

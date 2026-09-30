@@ -73,3 +73,28 @@ export function onFileChanged(cb: (paths: string[]) => void): Promise<UnlistenFn
 export function onCliTarget(cb: (t: InitialTarget) => void): Promise<UnlistenFn> {
   return listen<InitialTarget>("cli://target", (e) => cb(e.payload));
 }
+
+export type MenuAction =
+  | "open"
+  | "open-folder"
+  | "reload-file"
+  | "rescan-folder"
+  | "export-html"
+  | "export-markdown"
+  | "print"
+  | "reveal"
+  | "open-with"
+  | "close-tab"
+  | "close-folder"
+  | "find"
+  | "command-palette"
+  | "split-right"
+  | "split-down"
+  | "close-split"
+  | "zoom-in"
+  | "zoom-out"
+  | "zoom-reset";
+
+export function onMenuAction(cb: (action: MenuAction) => void): Promise<UnlistenFn> {
+  return listen<MenuAction>("menu://action", (e) => cb(e.payload));
+}
