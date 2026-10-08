@@ -2,6 +2,7 @@ use crate::error::AppResult;
 use ignore::WalkBuilder;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const DEFAULT_IGNORES: &[&str] = &[
     ".git",
@@ -22,6 +23,9 @@ pub struct TreeNode {
     pub name: String,
     pub path: String,
     pub is_dir: bool,
+    /// Last modified time in ms since epoch. For directories, the newest descendant.
+    #[serde(default)]
+    pub modified: u64,
     #[serde(default)]
     pub children: Vec<TreeNode>,
 }
@@ -59,11 +63,16 @@ pub fn build_tree(root: &Path) -> AppResult<TreeNode> {
         .build();
 
     // Collect files first.
-    let mut files: Vec<PathBuf> = Vec::new();
+    let mut files: Vec<(PathBuf, u64)> = Vec::new();
     for dent in walker.flatten() {
         let p = dent.path();
         if p.is_file() && is_markdown(p) {
-            files.push(p.to_path_buf());
+            let modified = std::fs::metadata(p)
+                .ok()
+                .and_then(|m| m.modified().ok())
+                .map(to_epoch_ms)
+                .unwrap_or(0);
+            files.push((p.to_path_buf(), modified));
         }
     }
     files.sort();
@@ -78,22 +87,42 @@ pub fn build_tree(root: &Path) -> AppResult<TreeNode> {
         name: root_name,
         path: root.to_string_lossy().into_owned(),
         is_dir: true,
+        modified: 0,
         children: Vec::new(),
     };
 
-    for f in files {
+    for (f, modified) in files {
         let rel = match f.strip_prefix(root) {
             Ok(r) => r,
             Err(_) => continue,
         };
-        insert_path(&mut root_node, root, rel);
+        insert_path(&mut root_node, root, rel, modified);
     }
 
+    propagate_modified(&mut root_node);
     sort_tree(&mut root_node);
     Ok(root_node)
 }
 
-fn insert_path(node: &mut TreeNode, root: &Path, rel: &Path) {
+fn to_epoch_ms(t: SystemTime) -> u64 {
+    t.duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+fn propagate_modified(node: &mut TreeNode) -> u64 {
+    if node.is_dir {
+        node.modified = node
+            .children
+            .iter_mut()
+            .map(propagate_modified)
+            .max()
+            .unwrap_or(0);
+    }
+    node.modified
+}
+
+fn insert_path(node: &mut TreeNode, root: &Path, rel: &Path, modified: u64) {
     let components: Vec<_> = rel
         .components()
         .map(|c| c.as_os_str().to_string_lossy().into_owned())
@@ -101,10 +130,16 @@ fn insert_path(node: &mut TreeNode, root: &Path, rel: &Path) {
     if components.is_empty() {
         return;
     }
-    insert_components(node, root, &components, 0);
+    insert_components(node, root, &components, 0, modified);
 }
 
-fn insert_components(node: &mut TreeNode, root: &Path, parts: &[String], idx: usize) {
+fn insert_components(
+    node: &mut TreeNode,
+    root: &Path,
+    parts: &[String],
+    idx: usize,
+    modified: u64,
+) {
     if idx >= parts.len() {
         return;
     }
@@ -114,7 +149,7 @@ fn insert_components(node: &mut TreeNode, root: &Path, parts: &[String], idx: us
 
     if let Some(existing) = node.children.iter_mut().find(|c| &c.name == part) {
         if !is_last {
-            insert_components(existing, root, parts, idx + 1);
+            insert_components(existing, root, parts, idx + 1, modified);
         }
         return;
     }
@@ -123,11 +158,12 @@ fn insert_components(node: &mut TreeNode, root: &Path, parts: &[String], idx: us
         name: part.clone(),
         path: abs.to_string_lossy().into_owned(),
         is_dir: !is_last,
+        modified: if is_last { modified } else { 0 },
         children: Vec::new(),
     };
 
     if !is_last {
-        insert_components(&mut new_node, root, parts, idx + 1);
+        insert_components(&mut new_node, root, parts, idx + 1, modified);
     }
     node.children.push(new_node);
 }
@@ -251,6 +287,49 @@ mod tests {
         assert!(tree.children[0].is_dir);
         assert_eq!(tree.children[0].name, "a_dir");
         assert_eq!(tree.children[1].name, "z_root.md");
+    }
+
+    fn set_mtime(p: &Path, ms: u64) {
+        let f = fs::File::options().write(true).open(p).unwrap();
+        f.set_modified(UNIX_EPOCH + std::time::Duration::from_millis(ms))
+            .unwrap();
+    }
+
+    #[test]
+    fn tree_records_modified_and_dirs_use_newest_descendant() {
+        let dir = tempdir().unwrap();
+        let old = dir.path().join("sub/old.md");
+        let new = dir.path().join("sub/deep/new.md");
+        let root_file = dir.path().join("root.md");
+        touch(&old);
+        touch(&new);
+        touch(&root_file);
+        set_mtime(&old, 1_000_000);
+        set_mtime(&new, 3_000_000);
+        set_mtime(&root_file, 2_000_000);
+
+        let tree = build_tree(dir.path()).unwrap();
+        let sub = tree.children.iter().find(|c| c.name == "sub").unwrap();
+        let deep = sub.children.iter().find(|c| c.name == "deep").unwrap();
+        let root_md = tree.children.iter().find(|c| c.name == "root.md").unwrap();
+        assert_eq!(root_md.modified, 2_000_000);
+        assert_eq!(deep.modified, 3_000_000);
+        assert_eq!(sub.modified, 3_000_000);
+        assert_eq!(tree.modified, 3_000_000);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn tree_uses_symlink_target_modified() {
+        let dir = tempdir().unwrap();
+        let target = dir.path().join("elsewhere/target.md");
+        touch(&target);
+        set_mtime(&target, 5_000_000);
+        std::os::unix::fs::symlink(&target, dir.path().join("link.md")).unwrap();
+
+        let tree = build_tree(dir.path()).unwrap();
+        let link = tree.children.iter().find(|c| c.name == "link.md").unwrap();
+        assert_eq!(link.modified, 5_000_000);
     }
 
     #[test]

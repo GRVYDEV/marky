@@ -22,6 +22,7 @@ export interface TreeNode {
   name: string;
   path: string;
   is_dir: boolean;
+  modified: number;
   children: TreeNode[];
 }
 
@@ -60,6 +61,7 @@ export interface PreferencesPayload {
   sidebar_right_width: number | null;
   copy_as_markdown: boolean | null;
   sidebar_group_by_repo: boolean | null;
+  sidebar_sort_by_modified: boolean | null;
 }
 
 export function onFolderChanged(cb: (folderId: string) => void): Promise<UnlistenFn> {

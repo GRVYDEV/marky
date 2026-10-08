@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { tauri, onFolderChanged, type AnnotatedFolder, type TreeNode } from "@/lib/tauri";
 import { usePreferences } from "@/lib/preferences";
+import { sortTreeByModified } from "@/lib/fileTree";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -9,7 +10,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Plus, X, ChevronDown, ChevronRight, FolderTree, Search, Layers, List } from "lucide-react";
+import { Plus, X, ChevronDown, ChevronRight, FolderTree, Search, Layers, List, Clock, ArrowDownAZ } from "lucide-react";
 import { FileTreeNode } from "@/components/FileTree";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -53,7 +54,12 @@ export function FolderSidebar({ activePath, onOpenFile, onOpenPalette, refreshNo
   const [trees, setTrees] = useState<Record<string, TreeNode>>({});
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
-  const { sidebarGroupByRepo, setSidebarGroupByRepo } = usePreferences();
+  const {
+    sidebarGroupByRepo,
+    setSidebarGroupByRepo,
+    sidebarSortByModified,
+    setSidebarSortByModified,
+  } = usePreferences();
 
   const loadAll = useCallback(async () => {
     const list = await tauri.listFoldersGrouped();
@@ -104,8 +110,18 @@ export function FolderSidebar({ activePath, onOpenFile, onOpenPalette, refreshNo
     await loadAll();
   };
 
+  const sortedTrees = useMemo(
+    () =>
+      sidebarSortByModified
+        ? Object.fromEntries(
+            Object.entries(trees).map(([id, tree]) => [id, sortTreeByModified(tree)])
+          )
+        : trees,
+    [trees, sidebarSortByModified]
+  );
+
   const renderFolder = (f: AnnotatedFolder) => {
-    const tree = trees[f.id];
+    const tree = sortedTrees[f.id];
     const isCollapsed = collapsed[f.id];
     return (
       <div key={f.id} id={`folder-${f.id}`} className="group/folder mb-1">
@@ -169,6 +185,25 @@ export function FolderSidebar({ activePath, onOpenFile, onOpenPalette, refreshNo
           Folders
         </div>
         <div className="flex items-center gap-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => setSidebarSortByModified(!sidebarSortByModified)}
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+              >
+                {sidebarSortByModified ? (
+                  <ArrowDownAZ className="h-3.5 w-3.5" />
+                ) : (
+                  <Clock className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {sidebarSortByModified ? "Sort by name" : "Sort by last modified"}
+            </TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
